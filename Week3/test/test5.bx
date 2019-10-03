@@ -1,0 +1,5 @@
+//Test behaviour when redeclaring variable
+var x = 2: int64;
+print x;
+var x = 3: int64;
+print x;

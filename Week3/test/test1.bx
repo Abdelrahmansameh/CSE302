@@ -1,0 +1,7 @@
+var truth = true: bool;
+if (truth){
+	print 1;
+}
+else{
+	print 0;
+}

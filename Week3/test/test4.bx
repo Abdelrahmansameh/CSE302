@@ -1,0 +1,9 @@
+//Test comparaisons
+var x = 1, y = 0 : int64;
+var b = x > y : bool;
+if (b){
+	print 1;
+}
+else{
+	print 0;
+}

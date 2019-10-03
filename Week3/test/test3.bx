@@ -1,0 +1,8 @@
+//Test boolean operators
+var b1=true, b2=false, b3, b4, b5: bool;
+b3 = b1 || b2;
+b4 = b1 && b2;
+print b3;
+print b4;
+b5 = ( b3 || b3 ) && b4;
+print b5;
