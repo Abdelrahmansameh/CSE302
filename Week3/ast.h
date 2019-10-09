@@ -206,10 +206,10 @@ namespace target {
 
 class Dest{
 public: 
-  const source::Type type;
-  const int dest;
+  source::Type type;
+  int dest;
   Dest(source::Type type, int dest): type(type), dest(dest) {}
-}
+};
 
 class Instr {
 public:
@@ -219,51 +219,61 @@ std::ostream& operator<<(std::ostream& out, Instr& i);
 
 class MoveImm : public Instr {
 public:
-  const Dest dest;
+  const Dest* dest;
   const int imm;
-  MoveImm(Dest dest, int imm) : dest(dest), imm(imm) { }
+  MoveImm(Dest* dest, int imm) : dest(dest), imm(imm) { }
   std::ostream& print(std::ostream &out) const override; // TODO in ast.cpp
 };
 
 class MoveBool : public Instr{
 public:
-  const Dest dest;
+  const Dest* dest;
   const bool bol;
-  MoveBool(Dest dest, bool bol) : dest(dest), bol(bol) {}
-  std::ostream& print(std::ostream &out) const override;
-}
+  MoveBool(Dest* dest, bool bol) : dest(dest), bol(bol) {}
+  std::ostream& print(std::ostream &out) const override {return out; };
+};
 
 class MoveCp : public Instr {
 public:
-  const Dest dest, source;
-  MoveCp(Dest dest, Dest source) : dest(dest), source(source) { }
+  const Dest* dest, *source;
+  MoveCp(Dest* dest, Dest* source) : dest(dest), source(source) { }
   std::ostream& print(std::ostream &out) const override; // TODO in ast.cpp
 };
 
 class MoveBinop : public Instr {
 public:
   const source::Binop op;
-  const Dest dest;
-  const Dest left_source, right_source;
-  MoveBinop(Dest dest, Dest left_source, source::Binop op, Dest right_source)
+  const Dest* dest;
+  const Dest* left_source, *right_source;
+  MoveBinop(Dest* dest, Dest* left_source, source::Binop op, Dest* right_source)
     : dest(dest), left_source(left_source), op(op), right_source(right_source) { }
   std::ostream& print(std::ostream &out) const override; // TODO in ast.cpp
+};
+
+class Compop : public Instr {
+public:
+  const source::Compop op;
+  const Dest* dest;
+  const Dest* left_source, *right_source;
+  Compop(Dest* dest, Dest* left_source, source::Compop op, Dest* right_source)
+    : dest(dest), left_source(left_source), op(op), right_source(right_source) { }
+  std::ostream& print(std::ostream &out) const override {return out;}; // TODO in ast.cpp
 };
 
 class MoveUnop : public Instr {
 public:
   const source::Unop op;
-  const Dest dest;
-  const Dest source;
-  MoveUnop(Dest dest, source::Unop op, Dest source)
+  const Dest* dest;
+  const Dest* source;
+  MoveUnop(Dest* dest, source::Unop op, Dest* source)
     : dest(dest), op(op), source(source) { }
   std::ostream& print(std::ostream &out) const override; // TODO in ast.cpp
 };
 
 class Print : public Instr {
 public:
-  const Dest source;
-  Print(Dest source) : source(source) { }
+  const Dest* source;
+  Print(Dest* source) : source(source) { }
   std::ostream& print(std::ostream &out) const override; // TODO in ast.cpp
 };
 
@@ -274,26 +284,25 @@ public:
   std::ostream& print(std::ostream &out) const override; // TODO in ast.cpp
 };
 
-class ifElse: public Instr{
+class jump: public Instr{
 public:
-  const Dest condition;
-  const std::list<Instr*> ifBlock;
-  const std::list<Instr*> elseBlock;
-  std::ostream& print(std::ostream &out) const override;
-}
+  const Dest* condition;
+  const std::string label;
+  std::ostream& print(std::ostream &out) const override {return out;};
+};
 
-class Whilee: public Instr{
+class labeledBlock: public Instr{
 public:
-  const Dest condition;
+  const std::string label;
   const std::list<Instr*> block;
-  std::ostream& print(std::ostream &out) const override;
-}
+  std::ostream& print(std::ostream &out) const override {return out;};
+};
 
 class Prog {
 public:
-  const std::list<Dest> symbol_table;
+  const std::list<Dest*> symbol_table;
   const std::list<Instr*> body;
-  Prog(std::list<Dest> symbol_table,
+  Prog(std::list<Dest*> symbol_table,
        std::list<Instr*> body) :
     symbol_table(symbol_table), body(body) { }
 };
@@ -302,7 +311,7 @@ std::ostream& operator<<(std::ostream& out, Prog &prog);
 } // bx::target
 
 target::Prog getTargetProg(const source::Prog prog);
-
-void tdmunch_expr(const source::Expr* expr, const target::Dest dest);
+void tdmunch_stmt(source::Stmt* stmt, std::list<target::Instr *>& instrction_list);
+void tdmunch_expr(const source::Expr* expr, target::Dest* dest, std::list<target::Instr *>& instrction_list);
 } // bx
 
