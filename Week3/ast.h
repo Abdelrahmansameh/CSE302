@@ -208,6 +208,7 @@ class Dest{
 public: 
   const source::Type type;
   const int dest;
+  Dest(source::Type type, int dest): type(type), dest(dest) {}
 }
 
 class Instr {
@@ -223,6 +224,14 @@ public:
   MoveImm(Dest dest, int imm) : dest(dest), imm(imm) { }
   std::ostream& print(std::ostream &out) const override; // TODO in ast.cpp
 };
+
+class MoveBool : public Instr{
+public:
+  const Dest dest;
+  const bool bol;
+  MoveBool(Dest dest, bool bol) : dest(dest), bol(bol) {}
+  std::ostream& print(std::ostream &out) const override;
+}
 
 class MoveCp : public Instr {
 public:

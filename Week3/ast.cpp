@@ -576,18 +576,24 @@ int varCounter = 0;
 std::list<target::Instr *> instructions;
 std::list<target::Dest> symbols;
 target::Prog getTargetProg(const source::Prog prog){
-
+  for (auto dclr : prog.body){
+      table[dclr->label] = Dest(dclr->type, ++varCounter);
+      symbols.push_back(table[dclr->label]);
+      if (dclr->initValue != NULL){
+        tdmunch_expr(dclr->initValue, table[dclr->label]);
+      }
+  }
   for (auto stmnt : prog.body){
     if (auto mv = dynamic_cast<source::Move*>(stmnt)){
       if (table.find(mv->dest->label) == table.end()){
-        table[mv->dest->label] = ++varCounter;
-        symbols.push_back(varCounter);
+        table[mv->dest->label] = Dest(mv->dest->getType(), ++varCounter);
+        symbols.push_back(table[mv->dest->label]);
       }
       tdmunch_expr(mv->source, table[mv->dest->label]);
     }
     else if (auto pr = dynamic_cast<source::Print*>(stmnt)){
-      target::Dest fresh = ++varCounter;
-      symbols.push_back(varCounter);
+      target::Dest fresh = Dest(pr->arg->getType(), ++varCounter);
+      symbols.push_back(fresh);
       tdmunch_expr(pr->arg, fresh);
       instructions.push_back(new target::Print(fresh));
     }
@@ -602,17 +608,29 @@ void tdmunch_expr(const source::Expr* expr, const target::Dest dest){
   if (auto imm = dynamic_cast<const source::Immediate*>(expr)){
     instructions.push_back(new target::MoveImm(dest, imm->value));
   }
+  if (auto bol = dynamic_cast<const source::Bool*>(expr)){
+    instructions.push_back(new target::MoveBool(dest, bol->value));
+  }
   if (auto unop = dynamic_cast<const source::UnopApp*>(expr)){
-    target::Dest fresh = ++varCounter;
-    symbols.push_back(varCounter);
+    target::Dest fresh = Dest(unop->getType(), ++varCounter);
+    symbols.push_back(Dest(unop->getType(), varCounter));
     tdmunch_expr(unop->arg, fresh);
     instructions.push_back(new target::MoveUnop(dest, unop->op, fresh));    
   }
   if (auto binop = dynamic_cast<const source::BinopApp*>(expr)){
-    target::Dest fresh1 = ++varCounter;
-    symbols.push_back(varCounter);
-    target::Dest fresh2 = ++varCounter;
-    symbols.push_back(varCounter);
+    target::Dest fresh1 = Dest(binop->getType(), ++varCounter);
+    symbols.push_back(fresh1);
+    target::Dest fresh2 = Dest(binop->getType(), ++varCounter);
+    symbols.push_back(fresh2);
+    tdmunch_expr(binop-> left_arg, fresh1);
+    tdmunch_expr(binop-> right_arg, fresh2);
+    instructions.push_back(new target::MoveBinop(dest, fresh1, binop->op, fresh2));
+  }
+  if (auto compop = dynamic_cast<const source::Compop*>(expr)){
+    target::Dest fresh1 = Dest(source::Type::BOOL, ++varCounter);
+    symbols.push_back(fresh1);
+    target::Dest fresh2 = Dest(source::Type::BOOL, ++varCounter);
+    symbols.push_back(fresh2);
     tdmunch_expr(binop-> left_arg, fresh1);
     tdmunch_expr(binop-> right_arg, fresh2);
     instructions.push_back(new target::MoveBinop(dest, fresh1, binop->op, fresh2));

@@ -40,5 +40,3 @@ VAR: [A-Za-z_][A-Za-z0-9_]* ;
 NUM: [0-9]+ ;
 
 WS: [ \t\r\n]+ -> skip ;
-
-
