@@ -139,7 +139,7 @@ public:
   Type type;
   const Expr* initValue;
   VarDecl(std::string label, Type type, Expr* initValue) : label(label), type(type), initValue(initValue) { };
-  std::ostream& print(std::ostream& out) const override {};
+  std::ostream& print(std::ostream& out) const override;
 };
 ////////////////////////////////////////////////////////////////////////////////
 // Statements
@@ -189,7 +189,7 @@ public:
 
 class Prog{
 public:
-  std::map<std::string, VarDecl*> vars;
+  std::list<VarDecl*> vars;
   std::list<Stmt*> body;
   std::ostream& print(std::ostream& out) ;
 };
@@ -204,7 +204,11 @@ source::Prog read_program(std::string file);
 
 namespace target {
 
-using Dest = int;
+class Dest{
+public: 
+  const source::Type type;
+  const int dest;
+}
 
 class Instr {
 public:
@@ -260,6 +264,21 @@ public:
   Comment(std::string comment) : comment(comment) { }
   std::ostream& print(std::ostream &out) const override; // TODO in ast.cpp
 };
+
+class ifElse: public Instr{
+public:
+  const Dest condition;
+  const std::list<Instr*> ifBlock;
+  const std::list<Instr*> elseBlock;
+  std::ostream& print(std::ostream &out) const override;
+}
+
+class Whilee: public Instr{
+public:
+  const Dest condition;
+  const std::list<Instr*> block;
+  std::ostream& print(std::ostream &out) const override;
+}
 
 class Prog {
 public:

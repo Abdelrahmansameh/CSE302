@@ -192,18 +192,24 @@ std::ostream& Whilee::print(std::ostream& out) const{
   out << "{ \n";
   this->block->print(out);
   out << " \n}\n";
+  return out;
+}
+
+std::ostream& VarDecl::print(std::ostream& out) const{
+    out << this->type;
+    out << " ";
+    out << this->label;
+    if (this->initValue != NULL){
+      out << " = ";
+      this->initValue->print(out);
+    }
+    out << "\n";
+    return out;
 }
 
 std::ostream& Prog::print(std::ostream& out){
-  for (std::map<std::string, VarDecl*>::iterator it = vars.begin(); it != vars.end(); ++it){
-    out << it->second->type;
-    out << " ";
-    out << it->first;
-    if (it->second->initValue != NULL){
-      out << " = ";
-      it->second->initValue->print(out);
-    }
-    out << "\n";
+  for (std::list<VarDecl*>::iterator it = vars.begin(); it != vars.end(); ++it){
+    (*it)->print(out);
   }
   for (auto i : this->body){
     i->print(out);
@@ -390,24 +396,25 @@ public:
   }
   void exitVarinit(BX0Parser::VarinitContext * ctx) override {
     if (ctx->expr() == nullptr){
-      VarDecl* tmp = new VarDecl(Type::INVALID, NULL);
+      VarDecl* tmp = new VarDecl(ctx->VAR()->getText(), Type::INVALID, NULL);
       this->varDeclareBuffer.push_back(tmp);
-      this->prog.vars[ctx->VAR()->getText()] = tmp;
+      this->prog.vars.push_back(tmp);
     }
     else{
-      printStack("Varinit " + ctx->getText() );
       auto initValue = expr_stack.back();
       expr_stack.pop_back();
       //conditionCounter--;
-      VarDecl* tmp = new VarDecl(Type::INVALID, initValue);
+      VarDecl* tmp = new VarDecl(ctx->VAR()->getText(), Type::INVALID, initValue);
       this->varDeclareBuffer.push_back(tmp);
-      this->prog.vars[ctx->VAR()->getText()] = tmp;
+      this->prog.vars.push_back(tmp);
     }
+    printStack("Varinit " + ctx->getText() );
   }
   void exitVardecl(BX0Parser::VardeclContext* ctx) override{
     Type type = ctx->type()->getText() == "bool" ? Type::BOOL: Type::INT;
     for (auto vardecl :  this->varDeclareBuffer){
       vardecl->type = type;
+      types[vardecl->label] = vardecl->type;
     }
     varDeclareBuffer.clear();
   }
