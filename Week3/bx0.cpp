@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstdlib>
+#include <iomanip>
 
 #include "antlr4-runtime.h"
 
@@ -9,13 +10,14 @@ using namespace bx;
 
 void display_source_program(source::Prog prog) {
   std::cout << "--- START OF AST ---\n";
-  for (auto stmt : prog) {
+  for (auto stmt : prog.body) {
     std::cout << *stmt << std::endl;
   }
   std::cout << "--- END OF AST ---\n";
 }
 
 int main(int argc, char **argv) {
+  std::cout << std::boolalpha;   
   if (argc >= 2) {
     std::string bx_file{argv[1]};
 
@@ -25,7 +27,10 @@ int main(int argc, char **argv) {
       std::exit(1);
     }
 
+    std::cout << "compiling " << bx_file << "\n";
     auto prog = source::read_program(bx_file);
+    prog.print(std::cout);
+    /*
     std::cout << bx_file << " parsed.\n";
 
     // TODO: comment the following line of code out before submitting; it's only
@@ -65,5 +70,6 @@ int main(int argc, char **argv) {
       std::exit(2);
     }
     std::cout << exe_file << " created.\n";
+  */
   }
 }

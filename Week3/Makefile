@@ -30,7 +30,7 @@ BX0Parser.h: BX0.g4
 	java -cp $(CLASSPATH) -jar $(ANTLR4_JAR) -Dlanguage=Cpp -package bx BX0.g4
 
 bx0.exe: $(OBJECTS)
-	$(CXX) -o $(@) $(OBJECTS) $(ANTLR4_LDFLAGS)
+	$(CXX) -o $(@) $(OBJECTS) $(ANTLR4_LDFLAGS) -ggdb
 
 %.exe: %.bx bx0.exe
 	LD_LIBRARY_PATH=/usr/local/gcc-9.1.0/lib64:/users/profs/info/kaustuv.chaudhuri/build/antlr4/run/usr/local/lib: ./bx0.exe $(<)

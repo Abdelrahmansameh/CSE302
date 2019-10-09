@@ -14,12 +14,48 @@ namespace source {
 
 using Dest = std::string;
 
-enum class Binop { Add, Subtract, Multiply, Divide, Modulus,
-                   BitAnd, BitOr, BitXor, Lshift, Rshift };
+enum class Type{
+  INT,
+  BOOL,
+  INVALID,
+};
+
+std::ostream& operator<<(std::ostream&, const Type);
+
+int getSize(const Type);
+
+enum class Binop { 
+  Add, 
+  Subtract, 
+  Multiply,
+  Divide,
+  Modulus,
+  BitAnd,
+  BitOr,
+  BitXor,
+  Lshift,
+  Rshift,
+  boolAnd,
+  boolOr,
+};
 std::ostream& operator<<(std::ostream&, const Binop);
 
-enum class Unop { Negate, BitNot };
+enum class Unop {
+  Negate,
+  BitNot,
+  boolNot 
+};
 std::ostream& operator<<(std::ostream& out, const Unop);
+
+enum class Compop{
+  Equals,
+  Leq,
+  Geq,
+  Le,
+  Ge,
+  Neq
+};
+std::ostream& operator<<(std::ostream&, const Compop);
 
 ////////////////////////////////////////////////////////////////////////////////
 // AST Nodes
@@ -33,13 +69,18 @@ std::ostream& operator<<(std::ostream& out, ASTNode& e);
 ////////////////////////////////////////////////////////////////////////////////
 // Expressions
 
-class Expr : public ASTNode { };
+class Expr : public ASTNode { 
+public:
+  virtual Type getType() const;
+};
 
 class Variable : public Expr {
 public:
+  const Type type;
   const std::string label;
-  Variable(std::string label) : label(label) { }
+  Variable(std::string label, Type type) : label(label), type(type) { }
   std::ostream& print(std::ostream& out) const override;
+  Type getType() const override;
 };
 
 class Immediate : public Expr {
@@ -47,6 +88,15 @@ public:
   const int value;
   Immediate(int value) : value(value) { }
   std::ostream& print(std::ostream& out) const override;
+  Type getType() const override;
+};
+
+class Bool: public Expr{
+public:
+  const bool value;
+  Bool(bool value): value(value){}
+  std::ostream& print(std::ostream& out) const override;
+  Type getType() const override;
 };
 
 class UnopApp : public Expr {
@@ -55,6 +105,7 @@ public:
   const Expr* arg;
   UnopApp(Unop op, Expr* arg) : op(op), arg(arg) { }
   std::ostream& print(std::ostream& out) const override;
+  Type getType() const override;
 };
 
 class BinopApp : public Expr {
@@ -65,8 +116,31 @@ public:
   BinopApp(Expr *left_arg, Binop op, Expr* right_arg) :
     left_arg(left_arg), op(op), right_arg(right_arg) { }
   std::ostream& print(std::ostream& out) const override;
+  Type getType() const override;
 };
 
+class Comparaison : public Expr{
+public:
+  const Compop op;
+  const Expr* left_arg;
+  const Expr* right_arg;
+  Comparaison(Expr* left_arg, Compop op, Expr* right_arg) :
+    left_arg(left_arg), op(op), right_arg(right_arg) { }
+  std::ostream& print(std::ostream& out) const override;
+  Type getType() const override;
+};
+
+////////////////////////////////////////////////////////////////////////////////
+// Variable declaration
+
+class VarDecl : public ASTNode{
+public:
+  const std::string label;
+  Type type;
+  const Expr* initValue;
+  VarDecl(std::string label, Type type, Expr* initValue) : label(label), type(type), initValue(initValue) { };
+  std::ostream& print(std::ostream& out) const override {};
+};
 ////////////////////////////////////////////////////////////////////////////////
 // Statements
 
@@ -76,7 +150,7 @@ class Print : public Stmt {
 public:
   const Expr* arg;
   Print(Expr* arg) : arg(arg) { }
-  std::ostream& print(std::ostream& out) const override;
+  std::ostream& print(std::ostream& out) const override ;
 };
 
 class Move : public Stmt {
@@ -87,7 +161,38 @@ public:
   std::ostream& print(std::ostream& out) const override;
 };
 
-using Prog = std::list<Stmt*>;
+class Block : public Stmt{
+public:
+  const std::list<Stmt*> statements;
+  Block(std::list<Stmt*> statements) : statements(statements) { };
+  std::ostream& print(std::ostream& out) const override;
+};
+
+class ifElse: public Stmt{
+public:
+  const Expr* condition;
+  const Block* ifBlock;
+  const Block* elseBlock;
+  ifElse(Expr* condition, Block* ifBlock, Block* elseBlock): condition(condition), ifBlock(ifBlock), elseBlock(elseBlock) { };
+  std::ostream& print(std::ostream& out) const override;
+};
+
+class Whilee: public Stmt{
+public:
+  const Expr* condition;
+  const Block* block;
+  Whilee(Expr* condition, Block* block): condition(condition), block(block) {};
+  std::ostream& print(std::ostream& out) const override;
+};
+////////////////////////////////////////////////////////////////////////////////
+// Program
+
+class Prog{
+public:
+  std::map<std::string, VarDecl*> vars;
+  std::list<Stmt*> body;
+  std::ostream& print(std::ostream& out) ;
+};
 
 ////////////////////////////////////////////////////////////////////////////////
 // Parsing

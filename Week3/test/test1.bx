@@ -1,5 +1,5 @@
 var truth = true: bool;
-if (truth){
+if (true){
 	print 1;
 }
 else{

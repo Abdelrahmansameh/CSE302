@@ -8,6 +8,22 @@ namespace bx {
 
 namespace source {
 
+std::ostream& operator<<(std::ostream& out, const Type tp){
+  switch (tp){
+  case Type::INT: return out << "int64";
+  case Type::BOOL: return out << "bool" ;
+  case Type::INVALID: return out << "invalid"; 
+  default: return out << "<?>";
+  }
+}
+
+int getSize(const Type tp){
+  switch (tp){
+  case Type::INT: return 64;
+  case Type::BOOL: return 8; 
+  default: return 0;
+  }
+}
 std::ostream& operator<<(std::ostream& out, const Binop op) {
   switch(op) {
   case Binop::Add: return out << '+';
@@ -20,6 +36,8 @@ std::ostream& operator<<(std::ostream& out, const Binop op) {
   case Binop::BitXor: return out << '^';
   case Binop::Lshift: return out << "<<";
   case Binop::Rshift: return out << ">>";
+  case Binop::boolAnd: return out << "&&";
+  case Binop::boolOr: return out << "||";
   default: return out << "<?>";
   }
 }
@@ -28,6 +46,19 @@ std::ostream& operator<<(std::ostream& out, const Unop op) {
   switch(op) {
   case Unop::Negate: return out << '-';
   case Unop::BitNot: return out << "~";
+  case Unop::boolNot: return out << "!";
+  default: return out << "<?>";
+  }
+}
+
+std::ostream& operator<<(std::ostream& out, const Compop op){
+  switch(op) {
+  case Compop::Equals: return out << "==";
+  case Compop::Leq: return out << "<=";
+  case Compop::Geq: return out << ">=";
+  case Compop::Ge: return out << ">";
+  case Compop::Le: return out << "<";
+  case Compop::Neq: return out << "!=";
   default: return out << "<?>";
   }
 }
@@ -41,15 +72,39 @@ std::ostream& Variable::print(std::ostream& out) const {
   return out;
 }
 
+Type Variable::getType() const{
+  return this->type;
+}
+
 std::ostream& Immediate::print(std::ostream& out) const {
   out << this->value;
   return out;
 }
 
+Type Immediate::getType() const{
+  return Type::INT;
+}
+
+std::ostream& Bool::print(std::ostream& out) const {
+  out << this->value;
+  return out;
+}
+Type Bool::getType() const{
+  return Type::BOOL;
+}
 std::ostream& UnopApp::print(std::ostream& out) const {
   out << '(' << this->op << ' ';
   this->arg->print(out);
   return out << ')';
+}
+
+Type UnopApp::getType() const{
+  switch(this->op) {
+  case Unop::Negate: return (this->arg->getType() == Type::INT ) ? Type::INT : Type::INVALID ;
+  case Unop::BitNot:  return (this->arg->getType() == Type::INT ) ? Type::INT : Type::INVALID;
+  case Unop::boolNot:  return (this->arg->getType() == Type::BOOL ) ? Type::BOOL : Type::INVALID;
+  default: return Type::INVALID;
+  }
 }
 
 std::ostream& BinopApp::print(std::ostream& out) const {
@@ -60,53 +115,234 @@ std::ostream& BinopApp::print(std::ostream& out) const {
   return out << ')';
 }
 
+Type BinopApp::getType() const{
+  if (this->left_arg->getType() != this->right_arg->getType()){
+    return Type::INVALID;
+  }
+  
+  switch(this->op){
+    case Binop::Add: return (this->left_arg->getType() == Type::INT ) ? Type::INT : Type::INVALID;
+    case Binop::Subtract: return (this->left_arg->getType() == Type::INT ) ? Type::INT : Type::INVALID;
+    case Binop::Multiply: return (this->left_arg->getType() == Type::INT ) ? Type::INT : Type::INVALID;
+    case Binop::Divide: return (this->left_arg->getType() == Type::INT ) ? Type::INT : Type::INVALID;
+    case Binop::Modulus: return (this->left_arg->getType() == Type::INT ) ? Type::INT : Type::INVALID;
+    case Binop::BitAnd: return (this->left_arg->getType() == Type::INT ) ? Type::INT : Type::INVALID;
+    case Binop::BitOr: return (this->left_arg->getType() == Type::INT ) ? Type::INT : Type::INVALID;
+    case Binop::BitXor: return (this->left_arg->getType() == Type::INT ) ? Type::INT : Type::INVALID;
+    case Binop::Lshift: return (this->left_arg->getType() == Type::INT ) ? Type::INT : Type::INVALID;
+    case Binop::Rshift: return (this->left_arg->getType() == Type::INT ) ? Type::INT : Type::INVALID;
+    case Binop::boolAnd: return (this->left_arg->getType() == Type::BOOL ) ? Type::BOOL : Type::INVALID;
+    case Binop::boolOr: return (this->left_arg->getType() == Type::BOOL ) ? Type::BOOL : Type::INVALID;
+    default: return Type::INVALID;
+  }
+}
+
+Type Expr::getType() const{
+  return Type::INVALID;
+}
+
+std::ostream& Comparaison::print(std::ostream& out) const{
+  out << '(';
+  this->left_arg->print(out);
+  out << ' ' << this->op << ' ';
+  this->right_arg->print(out);
+  return out << ')';
+} 
+
+Type Comparaison::getType() const{
+  if (this->left_arg->getType() != this->right_arg->getType()){
+    return Type::INVALID;
+  }
+  return Type::BOOL;
+}
+
 std::ostream& Print::print(std::ostream& out) const {
   out << "print ";
-  return this->arg->print(out) << ';';
+  return this->arg->print(out) << "; \n";
 }
 
 std::ostream& Move::print(std::ostream& out) const {
   this->dest->print(out);
   out << " = ";
-  return this->source->print(out) << ';';
+  return this->source->print(out) << "; \n";
 }
 
+std::ostream& Block::print(std::ostream& out) const{
+  for (auto stmt: this->statements){
+    stmt->print(out);
+    //out << "\n";
+  }
+  return out;
+}
+
+std::ostream& ifElse::print(std::ostream& out) const{
+  out << "if ";
+  this->condition->print(out);
+  out << " {\n";
+  this->ifBlock->print(out);
+  out << "}\n else {\n";
+  this->elseBlock->print(out);
+  out << "}\n";
+  return out;
+}
+
+std::ostream& Whilee::print(std::ostream& out) const{
+  out << "while ";
+  this->condition->print(out);
+  out << "{ \n";
+  this->block->print(out);
+  out << " \n}\n";
+}
+
+std::ostream& Prog::print(std::ostream& out){
+  for (std::map<std::string, VarDecl*>::iterator it = vars.begin(); it != vars.end(); ++it){
+    out << it->second->type;
+    out << " ";
+    out << it->first;
+    if (it->second->initValue != NULL){
+      out << " = ";
+      it->second->initValue->print(out);
+    }
+    out << "\n";
+  }
+  for (auto i : this->body){
+    i->print(out);
+  }
+  return out;
+
+}
 class SourceReader : public BX0BaseListener {
 private:
   Prog prog;
   std::list<Expr*> expr_stack;
+  std::list<VarDecl*> varDeclareBuffer;
+  std::map<std::string, Type> types;
+  std::list<int> conditionPositions;
+  std::list<std::list<Stmt*>> blockStack;
 public:
   Prog get_prog() { return this->prog; }
   void exitMove(BX0Parser::MoveContext* ctx) override {
-    auto dest = new Variable(ctx->VAR()->getText());
+    auto dest = new Variable(ctx->VAR()->getText(), types[ctx->VAR()->getText()]);
     auto source = this->expr_stack.back();
     this->expr_stack.pop_back();
+    //conditionCounter--;
     auto stmt = new Move(dest, source);
-    this->prog.push_back(stmt);
+    if (blockStack.size() == 0){
+      this->prog.body.push_back(stmt);
+    }
+    else{
+      blockStack.back().push_back(stmt);
+    }
   }
+
   void exitPrint(BX0Parser::PrintContext* ctx) override {
     auto dest = this->expr_stack.back();
     this->expr_stack.pop_back();
+    //conditionCounter--;
     auto stmt = new Print(dest);
-    this->prog.push_back(stmt);
+    if (blockStack.size() == 0){
+      this->prog.body.push_back(stmt);
+    }
+    else{
+      blockStack.back().push_back(stmt);
+    }
   }
   void exitUnop(BX0Parser::UnopContext* ctx) override {
     Unop op(ctx->op->getText()[0] == '-' ?
                     Unop::Negate :
-                    Unop::BitNot);
+                    (ctx->op->getText()[0] == '~') ?
+                    Unop::BitNot:
+                    Unop::boolNot);
     auto arg = this->expr_stack.back();
     this->expr_stack.pop_back();
+    //conditionCounter--;
     this->expr_stack.push_back(new UnopApp(op, arg));
+    //conditionCounter++;
   }
+  
 private:
   void processBinop(Binop op) {
     auto right = this->expr_stack.back();
     this->expr_stack.pop_back();
+    //conditionCounter--;
     auto left = this->expr_stack.back();
     this->expr_stack.pop_back();
+    //conditionCounter--;
     this->expr_stack.push_back(new BinopApp(left, op, right));
+    //conditionCounter++;
   }
+  void printStack(){
+    std::cout << "##########################\n";
+    std::cout << "Expression stack" << std::endl;
+    for (auto i : expr_stack){
+      i->print(std::cout);
+      std::cout << std::endl;
+    }
+    std::cout << "##########################\n";
+  }
+  void printStack(std::string message){
+    std::cout << "##########################\n";
+    std::cout << "Expression stack at " << message << std::endl;
+    for (auto i : expr_stack){
+      i->print(std::cout);
+      std::cout << " " << i->getType();
+      std::cout << std::endl;
+    }
+    std::cout << "##########################\n";
+  }
+  void printBlockStack(std::string message){}
 public:
+  void exitBoolop(BX0Parser::BoolopContext * ctx) override { 
+    auto right = this->expr_stack.back();
+    this->expr_stack.pop_back();
+    //conditionCounter--;
+    auto left = this->expr_stack.back();
+    this->expr_stack.pop_back();
+    //conditionCounter--;
+    std::string op = ctx->op->getText();
+    if (op == "&&"){
+      this->expr_stack.push_back(new BinopApp(left, Binop::boolAnd, right));
+      //conditionCounter++;
+    }
+    else{
+      this->expr_stack.push_back(new BinopApp(left, Binop::boolOr, right));
+      //conditionCounter++;
+    }
+    
+  }
+  void exitComparaison(BX0Parser::ComparaisonContext * ctx){
+    auto right = this->expr_stack.back();
+    this->expr_stack.pop_back();
+    //conditionCounter--;
+    auto left = this->expr_stack.back();
+    this->expr_stack.pop_back();
+    //conditionCounter--;
+    std::string op = ctx->op->getText();
+    if (op == "=="){
+      this->expr_stack.push_back(new Comparaison(left, Compop::Equals, right));
+      //conditionCounter++;
+    }
+    else if (op == "<="){
+      this->expr_stack.push_back(new Comparaison(left, Compop::Leq, right));
+      //conditionCounter++;
+    }
+    else if (op == "<"){
+      this->expr_stack.push_back(new Comparaison(left, Compop::Le, right));
+      //conditionCounter++;
+    }
+    else if (op == ">="){
+      this->expr_stack.push_back(new Comparaison(left, Compop::Geq, right));
+      //conditionCounter++;
+    }
+    else if (op == ">"){
+      this->expr_stack.push_back(new Comparaison(left, Compop::Ge, right));
+      //conditionCounter++;
+    }
+    else if (op == "!="){
+      this->expr_stack.push_back(new Comparaison(left, Compop::Neq, right));
+      //conditionCounter++;
+    }
+  }
   void exitAdd(BX0Parser::AddContext* ctx) override {
     this->processBinop(ctx->op->getText()[0] == '+' ?
                        Binop::Add :
@@ -133,10 +369,110 @@ public:
     this->processBinop(Binop::BitXor);
   }
   void exitVariable(BX0Parser::VariableContext* ctx) override {
-    this->expr_stack.push_back(new Variable(ctx->VAR()->getText()));
+     if(types.find(ctx->VAR()->getText()) == types.end()){
+        this->expr_stack.push_back(new Variable(ctx->VAR()->getText(), Type::INVALID));
+        //conditionCounter++;
+     }
+     else{
+      this->expr_stack.push_back(new Variable(ctx->VAR()->getText(), types[ctx->VAR()->getText()]));
+      //conditionCounter++;
+     }
+    printStack("VAR " + ctx->getText());
   }
   void exitNumber(BX0Parser::NumberContext* ctx) override {
     this->expr_stack.push_back(new Immediate(std::stoi(ctx->NUM()->getText())));
+    printStack("Number " + ctx->getText());
+    //conditionCounter++;
+  }
+  void exitBoolean(BX0Parser::BooleanContext * ctx) override{
+    this->expr_stack.push_back(new Bool(ctx->getText() == "true" ? true : false));
+    printStack("BOOL " + ctx->getText());
+  }
+  void exitVarinit(BX0Parser::VarinitContext * ctx) override {
+    if (ctx->expr() == nullptr){
+      VarDecl* tmp = new VarDecl(Type::INVALID, NULL);
+      this->varDeclareBuffer.push_back(tmp);
+      this->prog.vars[ctx->VAR()->getText()] = tmp;
+    }
+    else{
+      printStack("Varinit " + ctx->getText() );
+      auto initValue = expr_stack.back();
+      expr_stack.pop_back();
+      //conditionCounter--;
+      VarDecl* tmp = new VarDecl(Type::INVALID, initValue);
+      this->varDeclareBuffer.push_back(tmp);
+      this->prog.vars[ctx->VAR()->getText()] = tmp;
+    }
+  }
+  void exitVardecl(BX0Parser::VardeclContext* ctx) override{
+    Type type = ctx->type()->getText() == "bool" ? Type::BOOL: Type::INT;
+    for (auto vardecl :  this->varDeclareBuffer){
+      vardecl->type = type;
+    }
+    varDeclareBuffer.clear();
+  }
+  void enterIfelse(BX0Parser::IfelseContext * ctx) override{
+    /*
+    std::cout << (expr_stack.size()) << std::endl;
+    std::cout << static_cast<int>(expr_stack.size()) << std::endl;
+    */
+    conditionPositions.push_back(static_cast<int>(expr_stack.size()));
+    blockStack.push_back(std::list<Stmt*>());
+  }
+  void enterIfelsecont(BX0Parser::IfelsecontContext * ctx) override{
+    blockStack.push_back(std::list<Stmt*>());
+  }
+  void enterWhilee(BX0Parser::WhileeContext * ctx) override{
+    conditionPositions.push_back(static_cast<int>(expr_stack.size()));
+    blockStack.push_back(std::list<Stmt*>());
+  }
+  void exitIfelse(BX0Parser::IfelseContext * ctx) override{
+    int condPos = conditionPositions.back();
+    conditionPositions.pop_back();
+    std::list<Expr*>::iterator it = expr_stack.begin();
+    std::advance(it, condPos);
+    Expr* condition = *it;
+    printStack("Ifelse " + ctx->getText());
+    std::cout << "Condition (" << condPos <<"): \n";
+    condition->print(std::cout);
+    std::cout << std::endl;
+    Block* ifBlock, *elseBlock;
+    if (ctx->ifelsecont() == nullptr){
+      ifBlock = new Block(blockStack.back());
+      blockStack.pop_back();
+      elseBlock = new Block(std::list<Stmt*>());
+    }
+    else{
+      elseBlock = new Block(blockStack.back());
+      blockStack.pop_back();
+      ifBlock = new Block(blockStack.back());
+      blockStack.pop_back();
+    }
+    if (blockStack.size() == 0){
+      prog.body.push_back(new ifElse(condition, ifBlock,elseBlock));
+    }
+    else{
+      blockStack.back().push_back(new ifElse(condition, ifBlock,elseBlock));
+    }
+  }
+  void exitWhilee(BX0Parser::WhileeContext * ctx) override{
+    int condPos = conditionPositions.back();
+    conditionPositions.pop_back();
+    std::list<Expr*>::iterator it = expr_stack.begin();
+    std::advance(it, condPos);
+    Expr* condition = *it;
+      printStack("Whilee" + ctx->getText());
+    std::cout << "Condition (" << condPos <<"): \n";
+    condition->print(std::cout);
+    std::cout << std::endl;
+    Block* block = new Block(blockStack.back());
+    blockStack.pop_back();
+    if (blockStack.size() == 0){
+      prog.body.push_back(new Whilee(condition, block));
+    }
+    else{
+      blockStack.back().push_back(new Whilee(condition, block));
+    }
   }
 };
 
@@ -234,7 +570,7 @@ std::list<target::Instr *> instructions;
 std::list<target::Dest> symbols;
 target::Prog getTargetProg(const source::Prog prog){
 
-  for (auto stmnt : prog){
+  for (auto stmnt : prog.body){
     if (auto mv = dynamic_cast<source::Move*>(stmnt)){
       if (table.find(mv->dest->label) == table.end()){
         table[mv->dest->label] = ++varCounter;
