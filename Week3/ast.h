@@ -288,6 +288,7 @@ class jump: public Instr{
 public:
   const Dest* condition;
   const std::string label;
+  jump(Dest* condition, std::string label): condition(condition), label(label) {}
   std::ostream& print(std::ostream &out) const override {return out;};
 };
 
@@ -295,6 +296,7 @@ class labeledBlock: public Instr{
 public:
   const std::string label;
   const std::list<Instr*> block;
+  labeledBlock(std::string label, std::list<Instr*> block): label(label), block(block) { }
   std::ostream& print(std::ostream &out) const override {return out;};
 };
 

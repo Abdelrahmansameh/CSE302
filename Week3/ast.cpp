@@ -572,7 +572,7 @@ std::ostream& operator<<(std::ostream &out, Prog& prog) {
 std::map<std::string, target::Dest*> table;
 
 int varCounter = 0;
-
+int blockCounter = 0 ;
 std::list<target::Instr *> instructions;
 
 std::list<target::Dest*> symbols;
@@ -609,6 +609,16 @@ void tdmunch_stmt(source::Stmt* stmt, std::list<target::Instr *>& instrction_lis
       target::Dest* fresh = new target::Dest(ifels->condition->getType(), ++varCounter);
       symbols.push_back(fresh);
       tdmunch_expr(ifels->condition, fresh, instrction_list);
+      std::list<target::Instr *> ifBlock, elseBlock;
+      for (auto stmtbis : ifels->ifBlock->statements){
+        tdmunch_stmt(stmtbis, ifBlock);
+      }
+      for (auto stmtbis : ifels->elseBlock->statements){
+        tdmunch_stmt(stmtbis, elseBlock);
+      }
+      std::string lab = "L" + std::to_string(++blockCounter);
+      instrction_list.push_back(new jump(iflabel, fresh));
+
     }
 }
 
