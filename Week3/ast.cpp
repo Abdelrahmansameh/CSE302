@@ -505,6 +505,7 @@ std::ostream& operator<<(std::ostream& out, Instr& i) {
 }
 
 std::ostream& MoveImm::print(std::ostream& out) const {
+  out << "print" << 
   /*out << "movq $" << this->imm << ", " << 8 * (this->dest-1) << "(%rsp)\n";
   */return out;
 }
@@ -556,10 +557,10 @@ std::ostream& Print::print(std::ostream& out) const {
   */return out;
 }
 
-std::ostream& Comment::print(std::ostream& out) const {
+/*std::ostream& Comment::print(std::ostream& out) const {
   //out << "#" << this->comment << "\n";
   return out;
-}
+}*/
 
 std::ostream& operator<<(std::ostream &out, Prog& prog) {
   /*for (auto i : prog.body)
@@ -572,7 +573,9 @@ std::ostream& operator<<(std::ostream &out, Prog& prog) {
 std::map<std::string, target::Dest*> table;
 
 int varCounter = 0;
-int blockCounter = 0 ;
+
+int instrCounter = 0;
+
 std::list<target::Instr *> instructions;
 
 std::list<target::Dest*> symbols;
@@ -582,79 +585,90 @@ target::Prog getTargetProg(const source::Prog prog){
       table[dclr->label] = new target::Dest(dclr->type, ++varCounter);
       symbols.push_back(table[dclr->label]);
       if (dclr->initValue != NULL){
-        tdmunch_expr(dclr->initValue, table[dclr->label], instructions);
+        tdmunch_expr(dclr->initValue, table[dclr->label]);
       }
   }
   for (auto stmt : prog.body){
-    tdmunch_stmt(stmt, instructions);
+    tdmunch_stmt(stmt);
   }
   return target::Prog(symbols, instructions);
 }
 
-void tdmunch_stmt(source::Stmt* stmt, std::list<target::Instr *>& instrction_list){
+void tdmunch_stmt(source::Stmt* stmt){
     if (auto mv = dynamic_cast<source::Move*>(stmt)){
       /*if (table.find(mv->dest->label) == table.end()){
         table[mv->dest->label] = new target::Dest(mv->dest->getType(), ++varCounter);
         symbols.push_back(table[mv->dest->label]);
       }*/
-      tdmunch_expr(mv->source, table[mv->dest->label], instrction_list);
+      tdmunch_expr(mv->source, table[mv->dest->label]);
     }
     else if (auto pr = dynamic_cast<source::Print*>(stmt)){
       target::Dest* fresh = new target::Dest(pr->arg->getType(), ++varCounter);
       symbols.push_back(fresh);
-      tdmunch_expr(pr->arg, fresh, instrction_list);
-      instrction_list.push_back(new target::Print(fresh));
+      tdmunch_expr(pr->arg, fresh);
+      instructions.push_back(new target::Print(fresh, ++instrCounter));
     }
     else if (auto ifels = dynamic_cast<source::ifElse*>(stmt)){
       target::Dest* fresh = new target::Dest(ifels->condition->getType(), ++varCounter);
       symbols.push_back(fresh);
-      tdmunch_expr(ifels->condition, fresh, instrction_list);
+      tdmunch_expr(ifels->condition, fresh);
       std::list<target::Instr *> ifBlock, elseBlock;
+      int branchLabel = ++varCounter;
       for (auto stmtbis : ifels->ifBlock->statements){
-        tdmunch_stmt(stmtbis, ifBlock);
+        tdmunch_stmt(stmtbis);
       }
+      instructions.push_back(new target::UBranch(++instrCounter, fresh, branchLabel));
       for (auto stmtbis : ifels->elseBlock->statements){
-        tdmunch_stmt(stmtbis, elseBlock);
+        tdmunch_stmt(stmtbis);
       }
-      std::string lab = "L" + std::to_string(++blockCounter);
-      instrction_list.push_back(new jump(iflabel, fresh));
-
+    }
+    else if (auto whil = dynamic_cast<source::Whilee*>(stmt)){
+      target::Dest* fresh = new target::Dest(ifels->condition->getType(), ++varCounter);
+      symbols.push_back(fresh);
+      tdmunch_expr(ifels->condition, fresh);
+      std::list<target::Instr *> ifBlock, elseBlock;
+      int branchLabel = ++varCounter;
+      for (auto stmtbis : whil->block->statements){
+        tdmunch_stmt(stmtbis);
+      }
+      instructions.push_back(new target::Goto(branchLabel, ++instrCounter));
+      instructions.push_back(new target::UBranch(instrCounter+1, fresh, branchLabel));
     }
 }
 
-void tdmunch_expr(const source::Expr* expr, target::Dest* dest, std::list<target::Instr *>& instrction_list){
+void tdmunch_expr(const source::Expr* expr, target::Dest* dest){
   if (auto var = dynamic_cast<const source::Variable*>(expr)){
-    instrction_list.push_back(new target::MoveCp(dest, table[var->label]));
+    instructions.push_back(new target::MoveCp(dest, table[var->label], ++instrCounter));
   }
   if (auto imm = dynamic_cast<const source::Immediate*>(expr)){
-    instrction_list.push_back(new target::MoveImm(dest, imm->value));
+    instructions.push_back(new target::MoveImm(dest, imm->value, ++instrCounter));
   }
   if (auto bol = dynamic_cast<const source::Bool*>(expr)){
-    instrction_list.push_back(new target::MoveBool(dest, bol->value));
+    instructions.push_back(new target::MoveBool(dest, bol->value, ++instrCounter));
   }
   if (auto unop = dynamic_cast<const source::UnopApp*>(expr)){
     target::Dest* fresh = new target::Dest(unop->getType(), ++varCounter);
     symbols.push_back(fresh);
-    tdmunch_expr(unop->arg, fresh, instrction_list);
-    instrction_list.push_back(new target::MoveUnop(dest, unop->op, fresh));    
+    tdmunch_expr(unop->arg, fresh);
+    instructions.push_back(new target::MoveUnop(dest, unop->op, fresh, ++instrCounter));    
   }
   if (auto binop = dynamic_cast<const source::BinopApp*>(expr)){
     target::Dest* fresh1 = new target::Dest(binop->getType(), ++varCounter);
     symbols.push_back(fresh1);
     target::Dest* fresh2 = new target::Dest(binop->getType(), ++varCounter);
     symbols.push_back(fresh2);
-    tdmunch_expr(binop-> left_arg, fresh1, instrction_list);
-    tdmunch_expr(binop-> right_arg, fresh2, instrction_list);
-    instrction_list.push_back(new target::MoveBinop(dest, fresh1, binop->op, fresh2));
+    tdmunch_expr(binop-> left_arg, fresh1);
+    tdmunch_expr(binop-> right_arg, fresh2);
+    instructions.push_back(new target::MoveBinop(dest, fresh1, binop->op, fresh2, ++instrCounter));
   }
   if (auto compop = dynamic_cast<const source::Comparaison*>(expr)){
     target::Dest* fresh1 = new target::Dest(source::Type::BOOL, ++varCounter);
     symbols.push_back(fresh1);
     target::Dest* fresh2 = new target::Dest(source::Type::BOOL, ++varCounter);
     symbols.push_back(fresh2);
-    tdmunch_expr(compop-> left_arg, fresh1, instrction_list);
-    tdmunch_expr(compop-> right_arg, fresh2, instrction_list);
-    instrction_list.push_back(new target::Compop(dest, fresh1, compop->op, fresh2));
+    tdmunch_expr(compop-> left_arg, fresh1);
+    tdmunch_expr(compop-> right_arg, fresh2);
+    instructions.push_back(new target::Compop(dest, fresh1, compop->op, fresh2, ++instrCounter));
   }
 }
 

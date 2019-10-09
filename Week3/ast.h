@@ -184,6 +184,7 @@ public:
   Whilee(Expr* condition, Block* block): condition(condition), block(block) {};
   std::ostream& print(std::ostream& out) const override;
 };
+
 ////////////////////////////////////////////////////////////////////////////////
 // Program
 
@@ -213,70 +214,107 @@ public:
 
 class Instr {
 public:
+  int label;
   virtual std::ostream& print(std::ostream &out) const = 0;
 };
 std::ostream& operator<<(std::ostream& out, Instr& i);
 
 class MoveImm : public Instr {
 public:
+  const int label;
   const Dest* dest;
   const int imm;
-  MoveImm(Dest* dest, int imm) : dest(dest), imm(imm) { }
+  MoveImm(Dest* dest, int imm, int label) : dest(dest), imm(imm), label(label){ }
   std::ostream& print(std::ostream &out) const override; // TODO in ast.cpp
 };
 
 class MoveBool : public Instr{
 public:
+  const int label;
   const Dest* dest;
   const bool bol;
-  MoveBool(Dest* dest, bool bol) : dest(dest), bol(bol) {}
-  std::ostream& print(std::ostream &out) const override {return out; };
+  MoveBool(Dest* dest, bool bol, int label) : dest(dest), bol(bol), label(label) {}
+  std::ostream& print(std::ostream &out) const override;
 };
 
 class MoveCp : public Instr {
 public:
+  const int label;
   const Dest* dest, *source;
-  MoveCp(Dest* dest, Dest* source) : dest(dest), source(source) { }
+  MoveCp(Dest* dest, Dest* source, int label) : dest(dest), source(source), label(label) { }
   std::ostream& print(std::ostream &out) const override; // TODO in ast.cpp
 };
 
 class MoveBinop : public Instr {
 public:
+  const int label;
   const source::Binop op;
   const Dest* dest;
   const Dest* left_source, *right_source;
-  MoveBinop(Dest* dest, Dest* left_source, source::Binop op, Dest* right_source)
-    : dest(dest), left_source(left_source), op(op), right_source(right_source) { }
+  MoveBinop(Dest* dest, Dest* left_source, source::Binop op, Dest* right_source, int label)
+    : dest(dest), left_source(left_source), op(op), right_source(right_source), label(label) { }
   std::ostream& print(std::ostream &out) const override; // TODO in ast.cpp
 };
 
 class Compop : public Instr {
 public:
+  const int label;
   const source::Compop op;
   const Dest* dest;
   const Dest* left_source, *right_source;
-  Compop(Dest* dest, Dest* left_source, source::Compop op, Dest* right_source)
-    : dest(dest), left_source(left_source), op(op), right_source(right_source) { }
-  std::ostream& print(std::ostream &out) const override {return out;}; // TODO in ast.cpp
+  Compop(Dest* dest, Dest* left_source, source::Compop op, Dest* right_source, int label)
+    : dest(dest), left_source(left_source), op(op), right_source(right_source), label(label) { }
+  std::ostream& print(std::ostream &out) const override; // TODO in ast.cpp
 };
 
 class MoveUnop : public Instr {
 public:
+  const int label;
   const source::Unop op;
   const Dest* dest;
   const Dest* source;
-  MoveUnop(Dest* dest, source::Unop op, Dest* source)
-    : dest(dest), op(op), source(source) { }
+  MoveUnop(Dest* dest, source::Unop op, Dest* source, int label)
+    : dest(dest), op(op), source(source), label(label) { }
   std::ostream& print(std::ostream &out) const override; // TODO in ast.cpp
 };
 
 class Print : public Instr {
 public:
+  const int label;
   const Dest* source;
-  Print(Dest* source) : source(source) { }
+  Print(Dest* source, int label) : source(source), label(label) { }
   std::ostream& print(std::ostream &out) const override; // TODO in ast.cpp
 };
 
+class UBranch: public Instr{
+public:
+  const int label;
+  const int outlabel;
+  const Dest* condition;
+  UBranch(int outlabel, Dest* condition, int label): label(label), outlabel(outlabel), 
+  condition(condition) {}
+  std::ostream& print(std::ostream &out) const override;
+};
+
+class BBranch: public Instr{
+public:
+  const int label;
+  const int outlabel;
+  const Dest* condition;
+  BBranch(int outlabel, Dest* condition, int label): label(label), outlabel(outlabel), 
+  condition(condition) {}
+  std::ostream& print(std::ostream &out) const override;
+};
+
+class Goto: public Instr{
+public:
+  const int label;
+  const int outlabel;
+  Goto(int outlabel, int label): label(label), outlabel(outlabel) { }
+  std::ostream& print(std::ostream &out) const override;
+};
+
+/*
 class Comment : public Instr {
 public:
   const std::string comment;
@@ -299,7 +337,7 @@ public:
   labeledBlock(std::string label, std::list<Instr*> block): label(label), block(block) { }
   std::ostream& print(std::ostream &out) const override {return out;};
 };
-
+*/
 class Prog {
 public:
   const std::list<Dest*> symbol_table;
@@ -313,7 +351,7 @@ std::ostream& operator<<(std::ostream& out, Prog &prog);
 } // bx::target
 
 target::Prog getTargetProg(const source::Prog prog);
-void tdmunch_stmt(source::Stmt* stmt, std::list<target::Instr *>& instrction_list);
-void tdmunch_expr(const source::Expr* expr, target::Dest* dest, std::list<target::Instr *>& instrction_list);
+void tdmunch_stmt(source::Stmt* stmt);
+void tdmunch_expr(const source::Expr* expr, target::Dest* dest);
 } // bx
 
