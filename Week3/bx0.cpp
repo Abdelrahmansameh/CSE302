@@ -32,12 +32,11 @@ int main(int argc, char **argv) {
     prog.print(std::cout);
     std::cout << bx_file << " parsed.\n";
 
-    target::Prog tprog = getTargetProg(prog);
+     //target::Prog tprog = getTargetProg(prog);
 
 
-    tprog.print(std::cout);
+    //tprog.print(std::cout);
    
- /*
 
     // TODO: comment the following line of code out before submitting; it's only
     // meant for help with debuggin
@@ -48,7 +47,9 @@ int main(int argc, char **argv) {
     auto exe_file = file_root + ".exe";
 
 
-    target::Prog target_prog = getTargetProg(prog);
+   target::Prog target_prog = getTargetProg(prog);
+   target_prog.print(std::cout);
+
     int to_alloc = target_prog.symbol_table.size();
     std::ofstream c_out;
     c_out.open(c_file);
@@ -59,12 +60,13 @@ int main(int argc, char **argv) {
     c_out << "pushq %rbp\n";
     c_out << "movq %rsp, %rbp\n";
     c_out << "subq $" << to_alloc * 8 + 8 << ", %rsp \n";
+    c_out << "jmp .L1 \n";
     c_out << target_prog;
-
-    c_out << "movq %rbp, %rsp\n";
-    c_out << "popq %rbp\n";
-    c_out << "movq $0, %rax\n";
-    c_out <<"retq\n";
+    c_out << ".Lend:\n";
+    c_out << "\t movq %rbp, %rsp\n";
+    c_out << "\t popq %rbp\n";
+    c_out << "\t movq $0, %rax\n";
+    c_out << "\t retq\n";
   
     c_out.close();
     std::cout << c_file << " written.\n";
@@ -76,6 +78,5 @@ int main(int argc, char **argv) {
       std::exit(2);
     }
     std::cout << exe_file << " created.\n";
-  */
   }
 }

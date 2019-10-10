@@ -507,24 +507,30 @@ std::ostream& operator<<(std::ostream& out, Instr& i) {
 std::ostream& MoveImm::print(std::ostream& out) const {
   //out << "x" << this->dest->dest << " = " << this->imm << " L" << this->label << "\n";  
   out << ".L" << this->label << ":\n";
-  out << "\t movq $" << this->imm << ", " << 8 * (this->dest-1) << "(%rsp)\n";
-  out << "\t jmp .L" << this->label+1;
+  out << "\t movq $" << this->imm << ", " << 8 * (this->dest->dest-1) << "(%rsp)\n";
+  out << "\t jmp .L" << this->label+1 << "\n";
   return out;
 }
 
 std::ostream& MoveBool::print(std::ostream& out) const {
   //out << "x" << this->dest->dest << " = " << this->bol << " L" << this->label << "\n";  
   out << ".L" << this->label << ":\n";
-  out << "\t movq $" << this->bol ? 1 : 0 << ", " << 8 * (this->dest-1) << "(%rsp)\n";
-  out << "\t jmp .L" << this->label+1;
+  if (this->bol){
+    out << "\t movq $1, ";
+  }
+  else{
+    out << "\t movq $0, ";
+  }
+  out << 8 * (this->dest->dest-1) << "(%rsp)\n";
+  out << "\t jmp .L" << this->label+1 << "\n";
   return out;
 }
 
 std::ostream& MoveCp::print(std::ostream& out) const {
   //out << "x" << this->dest->dest << " = " << "x" << this->source->dest << " L" << this->label<< "\n";  
   out << ".L" << this->label << ":\n";
-  out << "\t movq " << 8 * (this->source-1) << "(%rsp), %R8\n movq %R8, " << 8 * (this->dest-1) << "(%rsp)\n";
-  out << "\t jmp .L" << this->label + 1;
+  out << "\t movq " << 8 * (this->source->dest-1) << "(%rsp), %R8\n movq %R8, " << 8 * (this->dest->dest-1) << "(%rsp)\n";
+  out << "\t jmp .L" << this->label + 1 << "\n";
   return out;
 }
 
@@ -532,58 +538,92 @@ std::ostream& MoveBinop::print(std::ostream& out) const {
   //out << "x" << this->dest->dest << " = " << "x" << this->left_source->dest << this->op << "x" << this->right_source->dest << " L" << this->label<< "\n";  
   out << ".L" << this->label << ":\n";
   if (this->op != source::Binop::Divide && this->op != source::Binop::Multiply && this->op != source::Binop::Modulus){  
-	out << "\t movq " << 8 * (this->right_source - 1) << "(%rsp), %R8\n movq " << 8*(this->left_source-1) << "(%rsp), %R9\n";
+	out << "\t movq " << 8 * (this->right_source->dest - 1) << "(%rsp), %R8\n \t movq " << 8*(this->left_source->dest-1) << "(%rsp), %R9\n";
 	switch(this->op) {
-  	case source::Binop::Add: return out << "\t addq %R8, %R9\n movq %R9, " << 8*(this->dest-1) << "(%rsp) \n";
-  	case source::Binop::Subtract: return out << "\t subq %R8, %R9\n movq %R9, " << 8*(this->dest-1) << "(%rsp) \n";
+  	case source::Binop::Add: return out << "\t addq %R8, %R9\n \t movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";
+  	case source::Binop::Subtract: return out << "\t subq %R8, %R9\n \t movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";
   	//case Binop::Multiply: return out << '*';
   	//case Binop::Divide: return out << '/';
   	//case Binop::Modulus: return out << '%';
-  	case source::Binop::BitAnd: return out << "\t andq %R8, %R9\n movq %R9, " << 8*(this->dest-1) << "(%rsp) \n";
-  	case source::Binop::BitOr: return out << "\t orq %R8, %R9\n movq %R9, " << 8*(this->dest-1) << "(%rsp) \n";
-  	case source::Binop::BitXor: return out << "\t xorq %R8, %R9\n movq %R9, " << 8*(this->dest-1) << "(%rsp) \n";
-  	case source::Binop::Lshift: return out << "\t movq %R8, %rcx\n salq %cl, %R9\n movq %R9, " << 8*(this->dest-1) << "(%rsp) \n";
-  	case source::Binop::Rshift: return out << "\t movq %R8, %rcx\n sarq %cl, %R9\n movq %R9, " << 8*(this->dest-1) << "(%rsp) \n";
-    case source::Binop::boolAnd: return out << "\t andq %R8, %R9\n movq %R9, " << 8*(this->dest-1) << "(%rsp) \n";
-    case source::Binop::boolOr: return out << "\t orq %R8, %R9\n movq %R9, " << 8*(this->dest-1) << "(%rsp) \n";
+  	case source::Binop::BitAnd: return out << "\t andq %R8, %R9\n \t movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";
+  	case source::Binop::BitOr: return out << "\t orq %R8, %R9\n \t movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";
+  	case source::Binop::BitXor: return out << "\t xorq %R8, %R9\n \t movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";
+  	case source::Binop::Lshift: return out << "\t movq %R8, %rcx\n \t salq %cl, %R9\n movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";
+  	case source::Binop::Rshift: return out << "\t movq %R8, %rcx\n \t sarq %cl, %R9\n movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";
+    case source::Binop::boolAnd: return out << "\t andq %R8, %R9\n \t movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";
+    case source::Binop::boolOr: return out << "\t orq %R8, %R9\n \t movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";
 	} 
   }
   else{
-	out << "\t movq " << 8 * (this->right_source -1) << "(%rsp), %R8\n movq " << 8 * (this->left_source -1 ) << "(%rsp), %rax\n";
+	out << "\t movq " << 8 * (this->right_source->dest -1) << "(%rsp), %R8\n \t movq " << 8 * (this->left_source->dest -1 ) << "(%rsp), %rax\n";
 	switch(this->op){
-    case source::Binop::Multiply: return out << "\t imulq %R8\n movq %rax, " << 8 * (this->dest -1) << "(%rsp)";
-    case source::Binop::Divide: return out <<"\t cqo\n idivq %R8\n movq %rax, " << 8*(this->dest-1) << "(%rsp)";
-    case source::Binop::Modulus: return out <<"\t cqo\n idivq %R8\n movq %rdx, " << 8*(this->dest-1) << "(%rsp)";
+    case source::Binop::Multiply: return out << "\t imulq %R8\n \t movq %rax, " << 8 * (this->dest->dest -1) << "(%rsp)\n";
+    case source::Binop::Divide: return out <<"\t cqo\n idivq %R8\n \t movq %rax, " << 8*(this->dest->dest-1) << "(%rsp)\n";
+    case source::Binop::Modulus: return out <<"\t cqo\n idivq %R8\n \t movq %rdx, " << 8*(this->dest->dest-1) << "(%rsp)\n";
 	}
   } 
-  out << "\t jmp .L" << this->label+1;
+  out << "\t jmp .L" << this->label+1 << "\n";
   return out;
 }
 
 std::ostream& MoveUnop::print(std::ostream& out) const {
   //out << "x" << this->dest->dest << " = " << this->op << "x" << this->source->dest << " L" << this->label<< "\n";
-  out << "\t movq " <<8*(this->source -1) << " (%rsp), %R8\n";
+  out << ".L" << this->label << ":\n";
+  out << "\t movq " <<8*(this->source->dest -1) << " (%rsp), %R8\n";
   if (this->op == source::Unop::Negate){out << "\t negq %R8\n";}
   if (this->op == source::Unop::BitNot){out << "\t notq %R8\n";}
-  if (this->op == source::Unop::boolNot){out << "\t notq %R8\n";}
-  out << "\t movq %R8, " << 8 * (this->dest -1 ) << "(%rsp)";
+  if (this->op == source::Unop::boolNot){out << "\t notq %R8\n" << "\t andq $1, %R8\n";}
+  out << "\t movq %R8, " << 8 * (this->dest->dest -1 ) << "(%rsp)\n";
+  out << "\t jmp .L" << this->label+1  << "\n";
   return out;
 }
 
 std::ostream& Print::print(std::ostream& out) const {
-  out << "print x" << this->source->dest << " L" << this->label << "\n";
-  /*out << "movq " << 8 * (this->source-1) << "(%rsp), %rdi\n";
-  out << "callq bx0_print\n";
-  */return out;
+  //out << "print x" << this->source->dest << " L" << this->label << "\n";
+  out << ".L" << this->label << ":\n";
+  out << "\t movq " << 8 * (this->source->dest-1) << "(%rsp), %rdi\n";
+  out << "\t callq bx0_print\n";
+  out << "\t jmp .L" << this->label + 1 << "\n";
+  return out;
 }
 
 std::ostream& Compop::print(std::ostream& out) const{ 
-  out << "x" << this->dest->dest << " = " << "x" << this->left_source->dest << this->op << "x" << this->right_source->dest << " L" << this->label<< "\n";
+  //out << "x" << this->dest->dest << " = " << "x" << this->left_source->dest << this->op << "x" << this->right_source->dest << " L" << this->label<< "\n";
+  out << ".L" << this->label << ":\n";
+  out << "\t movq $" << "1" << ", " << 8 * (this->dest->dest-1) << "(%rsp)\n";
+  out << "\t movq " << 8 * (this->right_source->dest - 1) << "(%rsp), %R8\n \t movq " << 8*(this->left_source->dest-1) << "(%rsp), %R9\n";
+  out << "\t cmpq %R8, %R9\n";
+  if (this-> op == source::Compop::Equals){
+    out << "\t je .Lend" << this->label << "\n";
+  }
+  if (this ->op == source::Compop::Neq){
+    out << "\t jne .Lend" << this->label << "\n";
+  }
+  if (this->op == source::Compop::Leq){
+    out << "\t jle .Lend" << this->label << "\n";
+  }
+  if (this->op == source::Compop::Le){
+    out << "\t jl .Lend" << this->label << "\n";
+  }
+  if (this->op == source::Compop::Geq){
+    out << "\t jge .Lend" << this->label << "\n";
+  }
+  if (this->op == source::Compop::Ge){
+    out << "\t jg .Lend" << this->label << "\n";
+  }
+  out << "\t movq $" << "0" << ", " << 8 * (this->dest->dest-1) << "(%rsp)\n";
+  out << ".Lend" << this->label << ":\n";
+  out << "\t jmp .L" << this->label + 1 << "\n";
   return out;
 }
 
 std::ostream& UBranch::print(std::ostream& out) const{
-  out << "ubranch to L" << this->outlabel << " if x" << this->condition->dest << " L" << this->label << "\n";
+  //out << "ubranch to L" << this->outlabel << " if x" << this->condition->dest << " L" << this->label << "\n";
+  out << ".L" << this->label <<":\n";
+  out << "\t movq " <<8*(this->condition->dest -1) << "(%rsp), %R8\n";
+  out << "\t cmpq $1, %R8\n";
+  out << "\t jne .L" << this->outlabel << "\n";
+  out << "\t jmp .L" << this->label + 1 << "\n";
   return out;
 }
 
@@ -593,7 +633,14 @@ std::ostream& BBranch::print(std::ostream& out) const{
 }
 
 std::ostream& Goto::print(std::ostream& out) const{
-  out << "ubranch to L" << this->outlabel << " L" << this->label << "\n";
+  out << ".L" << this->label <<":\n";
+  out << "\t jmp .L" << this->outlabel + 1 << "\n";
+  return out;
+}
+
+std::ostream& End::print(std::ostream& out) const{
+  out << ".L" << this->label << ":\n";
+  out << "\t jmp .Lend\n";
   return out;
 }
 /*std::ostream& Comment::print(std::ostream& out) const {
@@ -608,9 +655,8 @@ std::ostream& Prog::print(std::ostream &out) const {
   return out;
 }
 std::ostream& operator<<(std::ostream &out, Prog& prog) {
-  /*for (auto i : prog.body)
+  for (auto i : prog.body)
     out << *i << std::endl;
-  */
   return out;
 }
 
@@ -637,6 +683,7 @@ target::Prog getTargetProg(const source::Prog prog){
   for (auto stmt : prog.body){
     tdmunch_stmt(stmt);
   }
+  instructions.push_back(new target::End(++instrCounter));
   return target::Prog(symbols, instructions);
 }
 
@@ -663,10 +710,12 @@ void tdmunch_stmt(source::Stmt* stmt){
       for (auto stmtbis : ifels->ifBlock->statements){
         tdmunch_stmt(stmtbis);
       }
+      int branch2Label = ++instrCounter;
       instructions.push_back(new target::UBranch(instrCounter + 1, fresh, branchLabel));
       for (auto stmtbis : ifels->elseBlock->statements){
         tdmunch_stmt(stmtbis);
       }
+      instructions.push_back(new target::Goto(instrCounter, branch2Label));
     }
     else if (auto whil = dynamic_cast<source::Whilee*>(stmt)){
       target::Dest* fresh = new target::Dest(whil->condition->getType(), ++varCounter);

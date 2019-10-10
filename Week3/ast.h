@@ -314,6 +314,13 @@ public:
   std::ostream& print(std::ostream &out) const override;
 };
 
+class End: public Instr{
+public:
+  const int label;
+  End(int label): label(label){ }
+  std::ostream& print(std::ostream &out) const override;
+};
+
 /*
 class Comment : public Instr {
 public:

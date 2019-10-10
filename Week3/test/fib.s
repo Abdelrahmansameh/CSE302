@@ -5,247 +5,390 @@ main:
 pushq %rbp
 movq %rsp, %rbp
 subq $280, %rsp 
-movq $0, 0(%rsp)
+jmp .L1 
+.L1:
+	 movq $0, 0(%rsp)
+	 jmp .L2
 
-movq $1, 8(%rsp)
+.L2:
+	 movq $1, 8(%rsp)
+	 jmp .L3
 
-movq 0(%rsp), %R8
+.L3:
+	 movq 0(%rsp), %R8
+ movq %R8, 24(%rsp)
+	 jmp .L4
+
+.L4:
+	 movq 24(%rsp), %rdi
+	 callq bx0_print
+	 jmp .L5
+
+.L5:
+	 movq 0(%rsp), %R8
  movq %R8, 16(%rsp)
+	 jmp .L6
 
-movq 16(%rsp), %rdi
-callq bx0_print
-
-movq 0(%rsp), %R8
- movq %R8, 24(%rsp)
-
-movq 8(%rsp), %R8
+.L6:
+	 movq 8(%rsp), %R8
  movq %R8, 0(%rsp)
+	 jmp .L7
 
-movq 8(%rsp), %R8
+.L7:
+	 movq 8(%rsp), %R8
  movq %R8, 32(%rsp)
+	 jmp .L8
 
-movq 24(%rsp), %R8
+.L8:
+	 movq 16(%rsp), %R8
  movq %R8, 40(%rsp)
+	 jmp .L9
 
-movq 40(%rsp), %R8
- movq 32(%rsp), %R9
-addq %R8, %R9
- movq %R9, 8(%rsp) 
+.L9:
+	 movq 40(%rsp), %R8
+ 	 movq 32(%rsp), %R9
+	 addq %R8, %R9
+ 	 movq %R9, 8(%rsp) 
 
-movq 0(%rsp), %R8
+.L10:
+	 movq 0(%rsp), %R8
  movq %R8, 48(%rsp)
+	 jmp .L11
 
-movq 48(%rsp), %rdi
-callq bx0_print
+.L11:
+	 movq 48(%rsp), %rdi
+	 callq bx0_print
+	 jmp .L12
 
-movq 0(%rsp), %R8
- movq %R8, 24(%rsp)
+.L12:
+	 movq 0(%rsp), %R8
+ movq %R8, 16(%rsp)
+	 jmp .L13
 
-movq 8(%rsp), %R8
+.L13:
+	 movq 8(%rsp), %R8
  movq %R8, 0(%rsp)
+	 jmp .L14
 
-movq 8(%rsp), %R8
+.L14:
+	 movq 8(%rsp), %R8
  movq %R8, 56(%rsp)
+	 jmp .L15
 
-movq 24(%rsp), %R8
+.L15:
+	 movq 16(%rsp), %R8
  movq %R8, 64(%rsp)
+	 jmp .L16
 
-movq 64(%rsp), %R8
- movq 56(%rsp), %R9
-addq %R8, %R9
- movq %R9, 8(%rsp) 
+.L16:
+	 movq 64(%rsp), %R8
+ 	 movq 56(%rsp), %R9
+	 addq %R8, %R9
+ 	 movq %R9, 8(%rsp) 
 
-movq 0(%rsp), %R8
+.L17:
+	 movq 0(%rsp), %R8
  movq %R8, 72(%rsp)
+	 jmp .L18
 
-movq 72(%rsp), %rdi
-callq bx0_print
+.L18:
+	 movq 72(%rsp), %rdi
+	 callq bx0_print
+	 jmp .L19
 
-movq 0(%rsp), %R8
- movq %R8, 24(%rsp)
+.L19:
+	 movq 0(%rsp), %R8
+ movq %R8, 16(%rsp)
+	 jmp .L20
 
-movq 8(%rsp), %R8
+.L20:
+	 movq 8(%rsp), %R8
  movq %R8, 0(%rsp)
+	 jmp .L21
 
-movq 8(%rsp), %R8
+.L21:
+	 movq 8(%rsp), %R8
  movq %R8, 80(%rsp)
+	 jmp .L22
 
-movq 24(%rsp), %R8
+.L22:
+	 movq 16(%rsp), %R8
  movq %R8, 88(%rsp)
+	 jmp .L23
 
-movq 88(%rsp), %R8
- movq 80(%rsp), %R9
-addq %R8, %R9
- movq %R9, 8(%rsp) 
+.L23:
+	 movq 88(%rsp), %R8
+ 	 movq 80(%rsp), %R9
+	 addq %R8, %R9
+ 	 movq %R9, 8(%rsp) 
 
-movq 0(%rsp), %R8
+.L24:
+	 movq 0(%rsp), %R8
  movq %R8, 96(%rsp)
+	 jmp .L25
 
-movq 96(%rsp), %rdi
-callq bx0_print
+.L25:
+	 movq 96(%rsp), %rdi
+	 callq bx0_print
+	 jmp .L26
 
-movq 0(%rsp), %R8
- movq %R8, 24(%rsp)
+.L26:
+	 movq 0(%rsp), %R8
+ movq %R8, 16(%rsp)
+	 jmp .L27
 
-movq 8(%rsp), %R8
+.L27:
+	 movq 8(%rsp), %R8
  movq %R8, 0(%rsp)
+	 jmp .L28
 
-movq 8(%rsp), %R8
+.L28:
+	 movq 8(%rsp), %R8
  movq %R8, 104(%rsp)
+	 jmp .L29
 
-movq 24(%rsp), %R8
+.L29:
+	 movq 16(%rsp), %R8
  movq %R8, 112(%rsp)
+	 jmp .L30
 
-movq 112(%rsp), %R8
- movq 104(%rsp), %R9
-addq %R8, %R9
- movq %R9, 8(%rsp) 
+.L30:
+	 movq 112(%rsp), %R8
+ 	 movq 104(%rsp), %R9
+	 addq %R8, %R9
+ 	 movq %R9, 8(%rsp) 
 
-movq 0(%rsp), %R8
+.L31:
+	 movq 0(%rsp), %R8
  movq %R8, 120(%rsp)
+	 jmp .L32
 
-movq 120(%rsp), %rdi
-callq bx0_print
+.L32:
+	 movq 120(%rsp), %rdi
+	 callq bx0_print
+	 jmp .L33
 
-movq 0(%rsp), %R8
- movq %R8, 24(%rsp)
+.L33:
+	 movq 0(%rsp), %R8
+ movq %R8, 16(%rsp)
+	 jmp .L34
 
-movq 8(%rsp), %R8
+.L34:
+	 movq 8(%rsp), %R8
  movq %R8, 0(%rsp)
+	 jmp .L35
 
-movq 8(%rsp), %R8
+.L35:
+	 movq 8(%rsp), %R8
  movq %R8, 128(%rsp)
+	 jmp .L36
 
-movq 24(%rsp), %R8
+.L36:
+	 movq 16(%rsp), %R8
  movq %R8, 136(%rsp)
+	 jmp .L37
 
-movq 136(%rsp), %R8
- movq 128(%rsp), %R9
-addq %R8, %R9
- movq %R9, 8(%rsp) 
+.L37:
+	 movq 136(%rsp), %R8
+ 	 movq 128(%rsp), %R9
+	 addq %R8, %R9
+ 	 movq %R9, 8(%rsp) 
 
-movq 0(%rsp), %R8
+.L38:
+	 movq 0(%rsp), %R8
  movq %R8, 144(%rsp)
+	 jmp .L39
 
-movq 144(%rsp), %rdi
-callq bx0_print
+.L39:
+	 movq 144(%rsp), %rdi
+	 callq bx0_print
+	 jmp .L40
 
-movq 0(%rsp), %R8
- movq %R8, 24(%rsp)
+.L40:
+	 movq 0(%rsp), %R8
+ movq %R8, 16(%rsp)
+	 jmp .L41
 
-movq 8(%rsp), %R8
+.L41:
+	 movq 8(%rsp), %R8
  movq %R8, 0(%rsp)
+	 jmp .L42
 
-movq 8(%rsp), %R8
+.L42:
+	 movq 8(%rsp), %R8
  movq %R8, 152(%rsp)
+	 jmp .L43
 
-movq 24(%rsp), %R8
+.L43:
+	 movq 16(%rsp), %R8
  movq %R8, 160(%rsp)
+	 jmp .L44
 
-movq 160(%rsp), %R8
- movq 152(%rsp), %R9
-addq %R8, %R9
- movq %R9, 8(%rsp) 
+.L44:
+	 movq 160(%rsp), %R8
+ 	 movq 152(%rsp), %R9
+	 addq %R8, %R9
+ 	 movq %R9, 8(%rsp) 
 
-movq 0(%rsp), %R8
+.L45:
+	 movq 0(%rsp), %R8
  movq %R8, 168(%rsp)
+	 jmp .L46
 
-movq 168(%rsp), %rdi
-callq bx0_print
+.L46:
+	 movq 168(%rsp), %rdi
+	 callq bx0_print
+	 jmp .L47
 
-movq 0(%rsp), %R8
- movq %R8, 24(%rsp)
+.L47:
+	 movq 0(%rsp), %R8
+ movq %R8, 16(%rsp)
+	 jmp .L48
 
-movq 8(%rsp), %R8
+.L48:
+	 movq 8(%rsp), %R8
  movq %R8, 0(%rsp)
+	 jmp .L49
 
-movq 8(%rsp), %R8
+.L49:
+	 movq 8(%rsp), %R8
  movq %R8, 176(%rsp)
+	 jmp .L50
 
-movq 24(%rsp), %R8
+.L50:
+	 movq 16(%rsp), %R8
  movq %R8, 184(%rsp)
+	 jmp .L51
 
-movq 184(%rsp), %R8
- movq 176(%rsp), %R9
-addq %R8, %R9
- movq %R9, 8(%rsp) 
+.L51:
+	 movq 184(%rsp), %R8
+ 	 movq 176(%rsp), %R9
+	 addq %R8, %R9
+ 	 movq %R9, 8(%rsp) 
 
-movq 0(%rsp), %R8
+.L52:
+	 movq 0(%rsp), %R8
  movq %R8, 192(%rsp)
+	 jmp .L53
 
-movq 192(%rsp), %rdi
-callq bx0_print
+.L53:
+	 movq 192(%rsp), %rdi
+	 callq bx0_print
+	 jmp .L54
 
-movq 0(%rsp), %R8
- movq %R8, 24(%rsp)
+.L54:
+	 movq 0(%rsp), %R8
+ movq %R8, 16(%rsp)
+	 jmp .L55
 
-movq 8(%rsp), %R8
+.L55:
+	 movq 8(%rsp), %R8
  movq %R8, 0(%rsp)
+	 jmp .L56
 
-movq 8(%rsp), %R8
+.L56:
+	 movq 8(%rsp), %R8
  movq %R8, 200(%rsp)
+	 jmp .L57
 
-movq 24(%rsp), %R8
+.L57:
+	 movq 16(%rsp), %R8
  movq %R8, 208(%rsp)
+	 jmp .L58
 
-movq 208(%rsp), %R8
- movq 200(%rsp), %R9
-addq %R8, %R9
- movq %R9, 8(%rsp) 
+.L58:
+	 movq 208(%rsp), %R8
+ 	 movq 200(%rsp), %R9
+	 addq %R8, %R9
+ 	 movq %R9, 8(%rsp) 
 
-movq 0(%rsp), %R8
+.L59:
+	 movq 0(%rsp), %R8
  movq %R8, 216(%rsp)
+	 jmp .L60
 
-movq 216(%rsp), %rdi
-callq bx0_print
+.L60:
+	 movq 216(%rsp), %rdi
+	 callq bx0_print
+	 jmp .L61
 
-movq 0(%rsp), %R8
- movq %R8, 24(%rsp)
+.L61:
+	 movq 0(%rsp), %R8
+ movq %R8, 16(%rsp)
+	 jmp .L62
 
-movq 8(%rsp), %R8
+.L62:
+	 movq 8(%rsp), %R8
  movq %R8, 0(%rsp)
+	 jmp .L63
 
-movq 8(%rsp), %R8
+.L63:
+	 movq 8(%rsp), %R8
  movq %R8, 224(%rsp)
+	 jmp .L64
 
-movq 24(%rsp), %R8
+.L64:
+	 movq 16(%rsp), %R8
  movq %R8, 232(%rsp)
+	 jmp .L65
 
-movq 232(%rsp), %R8
- movq 224(%rsp), %R9
-addq %R8, %R9
- movq %R9, 8(%rsp) 
+.L65:
+	 movq 232(%rsp), %R8
+ 	 movq 224(%rsp), %R9
+	 addq %R8, %R9
+ 	 movq %R9, 8(%rsp) 
 
-movq 0(%rsp), %R8
+.L66:
+	 movq 0(%rsp), %R8
  movq %R8, 240(%rsp)
+	 jmp .L67
 
-movq 240(%rsp), %rdi
-callq bx0_print
+.L67:
+	 movq 240(%rsp), %rdi
+	 callq bx0_print
+	 jmp .L68
 
-movq 0(%rsp), %R8
- movq %R8, 24(%rsp)
+.L68:
+	 movq 0(%rsp), %R8
+ movq %R8, 16(%rsp)
+	 jmp .L69
 
-movq 8(%rsp), %R8
+.L69:
+	 movq 8(%rsp), %R8
  movq %R8, 0(%rsp)
+	 jmp .L70
 
-movq 8(%rsp), %R8
+.L70:
+	 movq 8(%rsp), %R8
  movq %R8, 248(%rsp)
+	 jmp .L71
 
-movq 24(%rsp), %R8
+.L71:
+	 movq 16(%rsp), %R8
  movq %R8, 256(%rsp)
+	 jmp .L72
 
-movq 256(%rsp), %R8
- movq 248(%rsp), %R9
-addq %R8, %R9
- movq %R9, 8(%rsp) 
+.L72:
+	 movq 256(%rsp), %R8
+ 	 movq 248(%rsp), %R9
+	 addq %R8, %R9
+ 	 movq %R9, 8(%rsp) 
 
-movq 0(%rsp), %R8
+.L73:
+	 movq 0(%rsp), %R8
  movq %R8, 264(%rsp)
+	 jmp .L74
 
-movq 264(%rsp), %rdi
-callq bx0_print
+.L74:
+	 movq 264(%rsp), %rdi
+	 callq bx0_print
+	 jmp .L75
 
-movq %rbp, %rsp
-popq %rbp
-movq $0, %rax
-retq
+.L75:
+	 jmp .Lend
+
+.Lend:
+	 movq %rbp, %rsp
+	 popq %rbp
+	 movq $0, %rax
+	 retq
