@@ -30,8 +30,14 @@ int main(int argc, char **argv) {
     std::cout << "compiling " << bx_file << "\n";
     auto prog = source::read_program(bx_file);
     prog.print(std::cout);
-    /*
     std::cout << bx_file << " parsed.\n";
+
+    target::Prog tprog = getTargetProg(prog);
+
+
+    tprog.print(std::cout);
+   
+ /*
 
     // TODO: comment the following line of code out before submitting; it's only
     // meant for help with debuggin

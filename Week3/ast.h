@@ -345,6 +345,7 @@ public:
   Prog(std::list<Dest*> symbol_table,
        std::list<Instr*> body) :
     symbol_table(symbol_table), body(body) { }
+  std::ostream& print(std::ostream &out) const;
 };
 std::ostream& operator<<(std::ostream& out, Prog &prog);
 
