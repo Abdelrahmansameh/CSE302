@@ -168,21 +168,20 @@ std::ostream& Move::print(std::ostream& out) const {
 }
 
 std::ostream& Block::print(std::ostream& out) const{
+  out << "{\n";
   for (auto stmt: this->statements){
     stmt->print(out);
-    //out << "\n";
   }
+  out << "}\n";
   return out;
 }
 
 std::ostream& ifElse::print(std::ostream& out) const{
   out << "if ";
   this->condition->print(out);
-  out << " {\n";
   this->ifBlock->print(out);
-  out << "}\n else {\n";
+  out << "else";
   this->elseBlock->print(out);
-  out << "}\n";
   return out;
 }
 
@@ -223,35 +222,36 @@ private:
   std::list<Expr*> expr_stack;
   std::list<VarDecl*> varDeclareBuffer;
   std::map<std::string, Type> types;
-  std::list<int> conditionPositions;
-  std::list<std::list<Stmt*>> blockStack;
+  std::list<Stmt*> stmtStack;
 public:
   Prog get_prog() { return this->prog; }
+  void exitProgram(BX0Parser::ProgramContext * ctx) override{
+    this->prog.body =  stmtStack;
+  }
+  void exitBlock(BX0Parser::BlockContext *ctx) override{
+    int nChildren = ctx->statement().size();
+    std::list<Stmt* > bl;
+    printStmtStack("Before" + ctx->getText() + std::to_string(nChildren));
+    while ( nChildren--  > 0 ) {
+      bl.push_front(this->stmtStack.back());
+      this->stmtStack.pop_back();
+    }
+    this->stmtStack.push_back(new Block(bl));
+    printStmtStack("After" + ctx->getText());
+  }
   void exitMove(BX0Parser::MoveContext* ctx) override {
     auto dest = new Variable(ctx->VAR()->getText(), types[ctx->VAR()->getText()]);
     auto source = this->expr_stack.back();
     this->expr_stack.pop_back();
-    //conditionCounter--;
     auto stmt = new Move(dest, source);
-    if (blockStack.size() == 0){
-      this->prog.body.push_back(stmt);
-    }
-    else{
-      blockStack.back().push_back(stmt);
-    }
+    this->stmtStack.push_back(stmt);
   }
 
   void exitPrint(BX0Parser::PrintContext* ctx) override {
     auto dest = this->expr_stack.back();
     this->expr_stack.pop_back();
-    //conditionCounter--;
     auto stmt = new Print(dest);
-    if (blockStack.size() == 0){
-      this->prog.body.push_back(stmt);
-    }
-    else{
-      blockStack.back().push_back(stmt);
-    }
+    this->stmtStack.push_back(stmt);
   }
   void exitUnop(BX0Parser::UnopContext* ctx) override {
     Unop op(ctx->op->getText()[0] == '-' ?
@@ -261,21 +261,52 @@ public:
                     Unop::boolNot);
     auto arg = this->expr_stack.back();
     this->expr_stack.pop_back();
-    //conditionCounter--;
     this->expr_stack.push_back(new UnopApp(op, arg));
-    //conditionCounter++;
   }
-  
+    void exitVardecl(BX0Parser::VardeclContext* ctx) override{
+    Type type = ctx->type()->getText() == "bool" ? Type::BOOL: Type::INT;
+    for (auto vardecl :  this->varDeclareBuffer){
+      vardecl->type = type;
+      types[vardecl->label] = vardecl->type;
+    }
+    varDeclareBuffer.clear();
+  }
+  void exitIfelse(BX0Parser::IfelseContext * ctx) override{
+    Expr* condition = this->expr_stack.back();
+    this->expr_stack.pop_back();
+    Block* ifBlock, *elseBlock;
+    if (ctx->ifelsecont() == nullptr){
+      Stmt* ifStmt = this->stmtStack.back();
+      this->stmtStack.pop_back();
+      ifBlock = dynamic_cast<Block*>(ifStmt);
+      elseBlock = new Block(std::list<Stmt*>());
+    }
+    else{
+      Stmt* elseStmt = this->stmtStack.back();
+      this->stmtStack.pop_back();
+      Stmt* ifStmt = this->stmtStack.back();
+      this->stmtStack.pop_back();
+      elseBlock = dynamic_cast<Block*>(elseStmt);
+      ifBlock = dynamic_cast<Block*>(ifStmt);
+    }
+    stmtStack.push_back(new ifElse(condition, ifBlock,elseBlock));
+    printStmtStack("After" + ctx->getText());
+  }
+  void exitWhilee(BX0Parser::WhileeContext * ctx) override{
+    Expr* condition = this->expr_stack.back();
+    this->expr_stack.pop_back();
+    Stmt* whileStmt = this->stmtStack.back();
+    this->stmtStack.pop_back();
+    Block* block = dynamic_cast<Block*>(whileStmt);
+    this->stmtStack.push_back(new Whilee(condition, block));
+  }
 private:
   void processBinop(Binop op) {
     auto right = this->expr_stack.back();
     this->expr_stack.pop_back();
-    //conditionCounter--;
     auto left = this->expr_stack.back();
     this->expr_stack.pop_back();
-    //conditionCounter--;
     this->expr_stack.push_back(new BinopApp(left, op, right));
-    //conditionCounter++;
   }
   void printStack(){
     std::cout << "##########################\n";
@@ -296,57 +327,60 @@ private:
     }
     std::cout << "##########################\n";
   }
-  void printBlockStack(std::string message){}
+  void printStmtStack(std::string message){    
+    std::cout << "##########################\n";
+    std::cout << "Statement stack at " << message << std::endl;
+    for (auto i : stmtStack){
+      i->print(std::cout);
+    }
+    std::cout << "##########################\n";
+  }
+  void printStmtStack(){    
+    std::cout << "##########################\n";
+    std::cout << "Statement stack" << std::endl;
+    for (auto i : stmtStack){
+      i->print(std::cout);
+    }
+    std::cout << "##########################\n";
+  }
 public:
   void exitBoolop(BX0Parser::BoolopContext * ctx) override { 
     auto right = this->expr_stack.back();
     this->expr_stack.pop_back();
-    //conditionCounter--;
     auto left = this->expr_stack.back();
     this->expr_stack.pop_back();
-    //conditionCounter--;
     std::string op = ctx->op->getText();
     if (op == "&&"){
       this->expr_stack.push_back(new BinopApp(left, Binop::boolAnd, right));
-      //conditionCounter++;
     }
     else{
       this->expr_stack.push_back(new BinopApp(left, Binop::boolOr, right));
-      //conditionCounter++;
     }
     
   }
   void exitComparaison(BX0Parser::ComparaisonContext * ctx){
     auto right = this->expr_stack.back();
     this->expr_stack.pop_back();
-    //conditionCounter--;
     auto left = this->expr_stack.back();
     this->expr_stack.pop_back();
-    //conditionCounter--;
     std::string op = ctx->op->getText();
     if (op == "=="){
       this->expr_stack.push_back(new Comparaison(left, Compop::Equals, right));
-      //conditionCounter++;
     }
     else if (op == "<="){
       this->expr_stack.push_back(new Comparaison(left, Compop::Leq, right));
-      //conditionCounter++;
     }
     else if (op == "<"){
       this->expr_stack.push_back(new Comparaison(left, Compop::Le, right));
-      //conditionCounter++;
     }
     else if (op == ">="){
       this->expr_stack.push_back(new Comparaison(left, Compop::Geq, right));
-      //conditionCounter++;
     }
     else if (op == ">"){
       this->expr_stack.push_back(new Comparaison(left, Compop::Ge, right));
-      //conditionCounter++;
     }
     else if (op == "!="){
       this->expr_stack.push_back(new Comparaison(left, Compop::Neq, right));
-      //conditionCounter++;
     }
   }
   void exitAdd(BX0Parser::AddContext* ctx) override {
@@ -377,22 +411,16 @@ public:
   void exitVariable(BX0Parser::VariableContext* ctx) override {
      if(types.find(ctx->VAR()->getText()) == types.end()){
         this->expr_stack.push_back(new Variable(ctx->VAR()->getText(), Type::INVALID));
-        //conditionCounter++;
      }
      else{
       this->expr_stack.push_back(new Variable(ctx->VAR()->getText(), types[ctx->VAR()->getText()]));
-      //conditionCounter++;
      }
-    printStack("VAR " + ctx->getText());
   }
   void exitNumber(BX0Parser::NumberContext* ctx) override {
     this->expr_stack.push_back(new Immediate(std::stoi(ctx->NUM()->getText())));
-    printStack("Number " + ctx->getText());
-    //conditionCounter++;
   }
   void exitBoolean(BX0Parser::BooleanContext * ctx) override{
     this->expr_stack.push_back(new Bool(ctx->getText() == "true" ? true : false));
-    printStack("BOOL " + ctx->getText());
   }
   void exitVarinit(BX0Parser::VarinitContext * ctx) override {
     if (ctx->expr() == nullptr){
@@ -403,84 +431,12 @@ public:
     else{
       auto initValue = expr_stack.back();
       expr_stack.pop_back();
-      //conditionCounter--;
       VarDecl* tmp = new VarDecl(ctx->VAR()->getText(), Type::INVALID, initValue);
       this->varDeclareBuffer.push_back(tmp);
       this->prog.vars.push_back(tmp);
     }
-    printStack("Varinit " + ctx->getText() );
   }
-  void exitVardecl(BX0Parser::VardeclContext* ctx) override{
-    Type type = ctx->type()->getText() == "bool" ? Type::BOOL: Type::INT;
-    for (auto vardecl :  this->varDeclareBuffer){
-      vardecl->type = type;
-      types[vardecl->label] = vardecl->type;
-    }
-    varDeclareBuffer.clear();
-  }
-  void enterIfelse(BX0Parser::IfelseContext * ctx) override{
-    /*
-    std::cout << (expr_stack.size()) << std::endl;
-    std::cout << static_cast<int>(expr_stack.size()) << std::endl;
-    */
-    conditionPositions.push_back(static_cast<int>(expr_stack.size()));
-    blockStack.push_back(std::list<Stmt*>());
-  }
-  void enterIfelsecont(BX0Parser::IfelsecontContext * ctx) override{
-    blockStack.push_back(std::list<Stmt*>());
-  }
-  void enterWhilee(BX0Parser::WhileeContext * ctx) override{
-    conditionPositions.push_back(static_cast<int>(expr_stack.size()));
-    blockStack.push_back(std::list<Stmt*>());
-  }
-  void exitIfelse(BX0Parser::IfelseContext * ctx) override{
-    int condPos = conditionPositions.back();
-    conditionPositions.pop_back();
-    std::list<Expr*>::iterator it = expr_stack.begin();
-    std::advance(it, condPos);
-    Expr* condition = *it;
-    printStack("Ifelse " + ctx->getText());
-    std::cout << "Condition (" << condPos <<"): \n";
-    condition->print(std::cout);
-    std::cout << std::endl;
-    Block* ifBlock, *elseBlock;
-    if (ctx->ifelsecont() == nullptr){
-      ifBlock = new Block(blockStack.back());
-      blockStack.pop_back();
-      elseBlock = new Block(std::list<Stmt*>());
-    }
-    else{
-      elseBlock = new Block(blockStack.back());
-      blockStack.pop_back();
-      ifBlock = new Block(blockStack.back());
-      blockStack.pop_back();
-    }
-    if (blockStack.size() == 0){
-      prog.body.push_back(new ifElse(condition, ifBlock,elseBlock));
-    }
-    else{
-      blockStack.back().push_back(new ifElse(condition, ifBlock,elseBlock));
-    }
-  }
-  void exitWhilee(BX0Parser::WhileeContext * ctx) override{
-    int condPos = conditionPositions.back();
-    conditionPositions.pop_back();
-    std::list<Expr*>::iterator it = expr_stack.begin();
-    std::advance(it, condPos);
-    Expr* condition = *it;
-      printStack("Whilee" + ctx->getText());
-    std::cout << "Condition (" << condPos <<"): \n";
-    condition->print(std::cout);
-    std::cout << std::endl;
-    Block* block = new Block(blockStack.back());
-    blockStack.pop_back();
-    if (blockStack.size() == 0){
-      prog.body.push_back(new Whilee(condition, block));
-    }
-    else{
-      blockStack.back().push_back(new Whilee(condition, block));
-    }
-  }
+
 };
 
 Prog read_program(std::string file) {
@@ -643,10 +599,6 @@ std::ostream& End::print(std::ostream& out) const{
   out << "\t jmp .Lend\n";
   return out;
 }
-/*std::ostream& Comment::print(std::ostream& out) const {
-  //out << "#" << this->comment << "\n";
-  return out;
-}*/
 
 std::ostream& Prog::print(std::ostream &out) const {
   for (auto i : this->body){
@@ -689,10 +641,6 @@ target::Prog getTargetProg(const source::Prog prog){
 
 void tdmunch_stmt(source::Stmt* stmt){
     if (auto mv = dynamic_cast<source::Move*>(stmt)){
-      /*if (table.find(mv->dest->label) == table.end()){
-        table[mv->dest->label] = new target::Dest(mv->dest->getType(), ++varCounter);
-        symbols.push_back(table[mv->dest->label]);
-      }*/
       tdmunch_expr(mv->source, table[mv->dest->label]);
     }
     else if (auto pr = dynamic_cast<source::Print*>(stmt)){
@@ -702,7 +650,8 @@ void tdmunch_stmt(source::Stmt* stmt){
       instructions.push_back(new target::Print(fresh, ++instrCounter));
     }
     else if (auto ifels = dynamic_cast<source::ifElse*>(stmt)){
-      target::Dest* fresh = new target::Dest(ifels->condition->getType(), ++varCounter);
+      stmt->print(std::cout);
+      target::Dest* fresh = new target::Dest(source::Type::BOOL, ++varCounter);
       symbols.push_back(fresh);
       tdmunch_expr(ifels->condition, fresh);
       std::list<target::Instr *> ifBlock, elseBlock;
@@ -732,6 +681,9 @@ void tdmunch_stmt(source::Stmt* stmt){
 }
 
 void tdmunch_expr(const source::Expr* expr, target::Dest* dest){
+  std::cout << "Evaluating: ";
+  expr->print(std::cout);
+  std::cout << "\n";
   if (auto var = dynamic_cast<const source::Variable*>(expr)){
     instructions.push_back(new target::MoveCp(dest, table[var->label], ++instrCounter));
   }

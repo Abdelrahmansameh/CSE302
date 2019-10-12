@@ -192,6 +192,7 @@ class Prog{
 public:
   std::list<VarDecl*> vars;
   std::list<Stmt*> body;
+  //Prog(std::list<VarDecl*> vars, std::list<Stmt*> body): vars(vars), body(body) {};
   std::ostream& print(std::ostream& out) ;
 };
 

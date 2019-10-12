@@ -29,8 +29,8 @@ int main(int argc, char **argv) {
 
     std::cout << "compiling " << bx_file << "\n";
     auto prog = source::read_program(bx_file);
-    prog.print(std::cout);
     std::cout << bx_file << " parsed.\n";
+    prog.print(std::cout);
 
      //target::Prog tprog = getTargetProg(prog);
 
@@ -40,15 +40,15 @@ int main(int argc, char **argv) {
 
     // TODO: comment the following line of code out before submitting; it's only
     // meant for help with debuggin
-    display_source_program(prog);
-
+    //display_source_program(prog);
     auto file_root = bx_file.substr(0, bx_file.size() - 3);
     auto c_file = file_root + ".s";
     auto exe_file = file_root + ".exe";
 
 
-   target::Prog target_prog = getTargetProg(prog);
-   target_prog.print(std::cout);
+    target::Prog target_prog = getTargetProg(prog);
+    //target_prog.print(std::cout);
+    std::cout << "HERE\n";
 
     int to_alloc = target_prog.symbol_table.size();
     std::ofstream c_out;
