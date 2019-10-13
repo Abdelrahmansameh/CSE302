@@ -30,7 +30,7 @@ int main(int argc, char **argv) {
     std::cout << "compiling " << bx_file << "\n";
     auto prog = source::read_program(bx_file);
     std::cout << bx_file << " parsed.\n";
-    prog.print(std::cout);
+   // prog.print(std::cout);
 
      //target::Prog tprog = getTargetProg(prog);
 
@@ -47,9 +47,8 @@ int main(int argc, char **argv) {
 
 
     target::Prog target_prog = getTargetProg(prog);
-    //target_prog.print(std::cout);
-    std::cout << "HERE\n";
-
+    target_prog.print(std::cout);
+    
     int to_alloc = target_prog.symbol_table.size();
     std::ofstream c_out;
     c_out.open(c_file);
@@ -60,7 +59,7 @@ int main(int argc, char **argv) {
     c_out << "pushq %rbp\n";
     c_out << "movq %rsp, %rbp\n";
     c_out << "subq $" << to_alloc * 8 + 8 << ", %rsp \n";
-    c_out << "jmp .L1 \n";
+    c_out << "jmp .L" << target_prog.start << "\n";
     c_out << target_prog;
     c_out << ".Lend:\n";
     c_out << "\t movq %rbp, %rsp\n";
@@ -78,5 +77,6 @@ int main(int argc, char **argv) {
       std::exit(2);
     }
     std::cout << exe_file << " created.\n";
+ 
   }
 }

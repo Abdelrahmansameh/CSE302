@@ -231,13 +231,13 @@ public:
   void exitBlock(BX0Parser::BlockContext *ctx) override{
     int nChildren = ctx->statement().size();
     std::list<Stmt* > bl;
-    printStmtStack("Before" + ctx->getText() + std::to_string(nChildren));
+    //printStmtStack("Before" + ctx->getText() + std::to_string(nChildren));
     while ( nChildren--  > 0 ) {
       bl.push_front(this->stmtStack.back());
       this->stmtStack.pop_back();
     }
     this->stmtStack.push_back(new Block(bl));
-    printStmtStack("After" + ctx->getText());
+    //printStmtStack("After" + ctx->getText());
   }
   void exitMove(BX0Parser::MoveContext* ctx) override {
     auto dest = new Variable(ctx->VAR()->getText(), types[ctx->VAR()->getText()]);
@@ -290,7 +290,7 @@ public:
       ifBlock = dynamic_cast<Block*>(ifStmt);
     }
     stmtStack.push_back(new ifElse(condition, ifBlock,elseBlock));
-    printStmtStack("After" + ctx->getText());
+    //printStmtStack("After" + ctx->getText());
   }
   void exitWhilee(BX0Parser::WhileeContext * ctx) override{
     Expr* condition = this->expr_stack.back();
@@ -461,88 +461,89 @@ std::ostream& operator<<(std::ostream& out, Instr& i) {
 }
 
 std::ostream& MoveImm::print(std::ostream& out) const {
-  //out << "x" << this->dest->dest << " = " << this->imm << " L" << this->label << "\n";  
+  //out << "x" << this->dest->dest << " = " << this->imm << " L" << this->label << " -> L" << this->outlabel << "\n";  
   out << ".L" << this->label << ":\n";
   out << "\t movq $" << this->imm << ", " << 8 * (this->dest->dest-1) << "(%rsp)\n";
-  out << "\t jmp .L" << this->label+1 << "\n";
+  out << "\t jmp .L" << this->outlabel << "\n";
   return out;
 }
 
 std::ostream& MoveBool::print(std::ostream& out) const {
-  //out << "x" << this->dest->dest << " = " << this->bol << " L" << this->label << "\n";  
+  //out << "x" << this->dest->dest << " = " << this->imm << " L" << this->label << " -> L" << this->outlabel << "\n";  
   out << ".L" << this->label << ":\n";
-  if (this->bol){
+  if (this->imm){
     out << "\t movq $1, ";
   }
   else{
     out << "\t movq $0, ";
   }
   out << 8 * (this->dest->dest-1) << "(%rsp)\n";
-  out << "\t jmp .L" << this->label+1 << "\n";
+  out << "\t jmp .L" << this->outlabel << "\n";
   return out;
 }
 
 std::ostream& MoveCp::print(std::ostream& out) const {
-  //out << "x" << this->dest->dest << " = " << "x" << this->source->dest << " L" << this->label<< "\n";  
+  //out << "x" << this->dest->dest << " = " << "x" << this->source->dest << " L" << this->label<< " -> L" << this->outlabel << "\n";  
   out << ".L" << this->label << ":\n";
-  out << "\t movq " << 8 * (this->source->dest-1) << "(%rsp), %R8\n movq %R8, " << 8 * (this->dest->dest-1) << "(%rsp)\n";
-  out << "\t jmp .L" << this->label + 1 << "\n";
+  out << "\t movq " << 8 * (this->source->dest-1) << "(%rsp), %R8\n \t movq %R8, " << 8 * (this->dest->dest-1) << "(%rsp)\n";
+  out << "\t jmp .L" << this->outlabel<< "\n";
   return out;
 }
 
 std::ostream& MoveBinop::print(std::ostream& out) const {
-  //out << "x" << this->dest->dest << " = " << "x" << this->left_source->dest << this->op << "x" << this->right_source->dest << " L" << this->label<< "\n";  
+  //out << "x" << this->dest->dest << " = " << "x" << this->left_source->dest << this->op << "x" << this->right_source->dest << " L" << this->label<< " -> L" << this->outlabel << "\n";  
   out << ".L" << this->label << ":\n";
   if (this->op != source::Binop::Divide && this->op != source::Binop::Multiply && this->op != source::Binop::Modulus){  
 	out << "\t movq " << 8 * (this->right_source->dest - 1) << "(%rsp), %R8\n \t movq " << 8*(this->left_source->dest-1) << "(%rsp), %R9\n";
 	switch(this->op) {
-  	case source::Binop::Add: return out << "\t addq %R8, %R9\n \t movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";
-  	case source::Binop::Subtract: return out << "\t subq %R8, %R9\n \t movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";
+  	case source::Binop::Add: out << "\t addq %R8, %R9\n \t movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n"; break;
+  	case source::Binop::Subtract: out << "\t subq %R8, %R9\n \t movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n"; break;
   	//case Binop::Multiply: return out << '*';
   	//case Binop::Divide: return out << '/';
   	//case Binop::Modulus: return out << '%';
-  	case source::Binop::BitAnd: return out << "\t andq %R8, %R9\n \t movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";
-  	case source::Binop::BitOr: return out << "\t orq %R8, %R9\n \t movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";
-  	case source::Binop::BitXor: return out << "\t xorq %R8, %R9\n \t movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";
-  	case source::Binop::Lshift: return out << "\t movq %R8, %rcx\n \t salq %cl, %R9\n movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";
-  	case source::Binop::Rshift: return out << "\t movq %R8, %rcx\n \t sarq %cl, %R9\n movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";
-    case source::Binop::boolAnd: return out << "\t andq %R8, %R9\n \t movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";
-    case source::Binop::boolOr: return out << "\t orq %R8, %R9\n \t movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";
+  	case source::Binop::BitAnd: out << "\t andq %R8, %R9\n \t movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n"; break;
+  	case source::Binop::BitOr:  out << "\t orq %R8, %R9\n \t movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";break;
+  	case source::Binop::BitXor:  out << "\t xorq %R8, %R9\n \t movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";
+  	case source::Binop::Lshift: out << "\t movq %R8, %rcx\n \t salq %cl, %R9\n movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";break;
+  	case source::Binop::Rshift:  out << "\t movq %R8, %rcx\n \t sarq %cl, %R9\n movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";break;
+    case source::Binop::boolAnd: out << "\t andq %R8, %R9\n \t movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";break;
+    case source::Binop::boolOr:  out << "\t orq %R8, %R9\n \t movq %R9, " << 8*(this->dest->dest-1) << "(%rsp) \n";break;
 	} 
   }
   else{
 	out << "\t movq " << 8 * (this->right_source->dest -1) << "(%rsp), %R8\n \t movq " << 8 * (this->left_source->dest -1 ) << "(%rsp), %rax\n";
 	switch(this->op){
-    case source::Binop::Multiply: return out << "\t imulq %R8\n \t movq %rax, " << 8 * (this->dest->dest -1) << "(%rsp)\n";
-    case source::Binop::Divide: return out <<"\t cqo\n idivq %R8\n \t movq %rax, " << 8*(this->dest->dest-1) << "(%rsp)\n";
-    case source::Binop::Modulus: return out <<"\t cqo\n idivq %R8\n \t movq %rdx, " << 8*(this->dest->dest-1) << "(%rsp)\n";
+    case source::Binop::Multiply:  out << "\t imulq %R8\n \t movq %rax, " << 8 * (this->dest->dest -1) << "(%rsp)\n";break;
+    case source::Binop::Divide:  out <<"\t cqo\n idivq %R8\n \t movq %rax, " << 8*(this->dest->dest-1) << "(%rsp)\n";break;
+    case source::Binop::Modulus:  out <<"\t cqo\n idivq %R8\n \t movq %rdx, " << 8*(this->dest->dest-1) << "(%rsp)\n";break;
 	}
   } 
-  out << "\t jmp .L" << this->label+1 << "\n";
+  out << "\t jmp .L" << this->outlabel << "\n";
   return out;
 }
 
 std::ostream& MoveUnop::print(std::ostream& out) const {
-  //out << "x" << this->dest->dest << " = " << this->op << "x" << this->source->dest << " L" << this->label<< "\n";
+  //out << "x" << this->dest->dest << " = " << this->op << "x" << this->source->dest << " L" << this->label<< " -> L" << this->outlabel << "\n";
   out << ".L" << this->label << ":\n";
   out << "\t movq " <<8*(this->source->dest -1) << " (%rsp), %R8\n";
   if (this->op == source::Unop::Negate){out << "\t negq %R8\n";}
   if (this->op == source::Unop::BitNot){out << "\t notq %R8\n";}
   if (this->op == source::Unop::boolNot){out << "\t notq %R8\n" << "\t andq $1, %R8\n";}
   out << "\t movq %R8, " << 8 * (this->dest->dest -1 ) << "(%rsp)\n";
-  out << "\t jmp .L" << this->label+1  << "\n";
+  out << "\t jmp .L" << this->outlabel << "\n";
   return out;
 }
 
 std::ostream& Print::print(std::ostream& out) const {
-  //out << "print x" << this->source->dest << " L" << this->label << "\n";
+  //out << "print x" << this->source->dest << " L" << this->label << " -> L" << this->outlabel << "\n";
   out << ".L" << this->label << ":\n";
   out << "\t movq " << 8 * (this->source->dest-1) << "(%rsp), %rdi\n";
   out << "\t callq bx0_print\n";
-  out << "\t jmp .L" << this->label + 1 << "\n";
+  out << "\t jmp .L" << this->outlabel << "\n";
   return out;
 }
 
+/*
 std::ostream& Compop::print(std::ostream& out) const{ 
   //out << "x" << this->dest->dest << " = " << "x" << this->left_source->dest << this->op << "x" << this->right_source->dest << " L" << this->label<< "\n";
   out << ".L" << this->label << ":\n";
@@ -572,31 +573,61 @@ std::ostream& Compop::print(std::ostream& out) const{
   out << "\t jmp .L" << this->label + 1 << "\n";
   return out;
 }
+*/
 
 std::ostream& UBranch::print(std::ostream& out) const{
   //out << "ubranch to L" << this->outlabel << " if x" << this->condition->dest << " L" << this->label << "\n";
   out << ".L" << this->label <<":\n";
   out << "\t movq " <<8*(this->condition->dest -1) << "(%rsp), %R8\n";
   out << "\t cmpq $1, %R8\n";
-  out << "\t jne .L" << this->outlabel << "\n";
-  out << "\t jmp .L" << this->label + 1 << "\n";
+  out << "\t jz .L" << this->outlabel << "\n";
+  out << "\t jmp .L" << this->outlabel2 << "\n";
   return out;
 }
 
 std::ostream& BBranch::print(std::ostream& out) const{
-  out << "ubranch to L" << this->outlabel << " if x" << this->condition->dest << " L" << this->label << "\n";
+  out << ".L" << this->label << ":\n";
+  out << "\t movq " << 8 * (this->condition1->dest - 1) << "(%rsp), %R8\n \t movq " << 8*(this->condition2->dest-1) << "(%rsp), %R9\n";
+  out << "\t cmpq " << "%R9, %R8\n";
+  if (this-> op == source::Compop::Equals){
+    out << "\t je .L" << this->outlabel << "\n";
+  }
+  if (this ->op == source::Compop::Neq){
+    out << "\t jne .L" << this->outlabel << "\n";
+  }
+  if (this->op == source::Compop::Leq){
+    out << "\t jle .L" << this->outlabel << "\n";
+  }
+  if (this->op == source::Compop::Le){
+    out << "\t jl .L" << this->outlabel << "\n";
+  }
+  if (this->op == source::Compop::Geq){
+    out << "\t jge .L" << this->outlabel << "\n";
+  }
+  if (this->op == source::Compop::Ge){
+    out << "\t jg .L" << this->outlabel << "\n";
+  }
+  out << "\t jmp .L" << this->outlabel2<< "\n";
   return out;
 }
 
 std::ostream& Goto::print(std::ostream& out) const{
+  //out << "Goto L" << this->label << "->L" << this->outlabel << "\n";
   out << ".L" << this->label <<":\n";
-  out << "\t jmp .L" << this->outlabel + 1 << "\n";
+  out << "\t jmp .L" << this->outlabel<< "\n";
   return out;
 }
 
 std::ostream& End::print(std::ostream& out) const{
+  //out << "End L" << this->label << "\n";
   out << ".L" << this->label << ":\n";
   out << "\t jmp .Lend\n";
+  return out;
+}
+
+std::ostream& Start::print(std::ostream& out) const{
+  //out << "Start .L" << this->outlabel << "\n";
+  out << "jmp .L" << this->outlabel << "\n";
   return out;
 }
 
@@ -628,95 +659,191 @@ target::Prog getTargetProg(const source::Prog prog){
   for (auto dclr : prog.vars){
       table[dclr->label] = new target::Dest(dclr->type, ++varCounter);
       symbols.push_back(table[dclr->label]);
+  }
+  int L = instrCounter++;
+  int end = L;
+  for (auto it = prog.body.rbegin(); it != prog.body.rend(); ++it){
+    L = tdmunch_stmt(*it, L);
+    std::cout << "L: ";
+    (*it)->print(std::cout);
+    std::cout << L << std::endl;
+    //(*it)->print(std::cout);
+  }
+  for (auto it = prog.vars.rbegin(); it != prog.vars.rend(); ++it){
+      auto dclr = *it;
       if (dclr->initValue != NULL){
-        tdmunch_expr(dclr->initValue, table[dclr->label]);
+        if (dclr->type == source::Type::INT){
+          L = tdmunch_expr_int(dclr->initValue, table[dclr->label], L);
+        }
+        else{
+          int Lt = instrCounter++;
+          int Lf = instrCounter++;
+          std::cout << "L: " << L << std::endl;
+          instructions.push_back(new target::MoveBool(table[dclr->label], true, Lt, L));
+          instructions.push_back(new target::MoveBool(table[dclr->label], false, Lf, L));
+          L = tdmunch_expr_bool(dclr->initValue, Lt, Lf);
+        }
       }
+      (*it)->print(std::cout);
   }
-  for (auto stmt : prog.body){
-    tdmunch_stmt(stmt);
-  }
-  instructions.push_back(new target::End(++instrCounter));
-  return target::Prog(symbols, instructions);
+  instructions.push_back(new target::End(end));
+  return target::Prog(symbols, instructions, L);
 }
 
-void tdmunch_stmt(source::Stmt* stmt){
-    if (auto mv = dynamic_cast<source::Move*>(stmt)){
-      tdmunch_expr(mv->source, table[mv->dest->label]);
+int tdmunch_stmt(const source::Stmt* stmt, int Lo){
+    if (auto mv = dynamic_cast<const source::Move*>(stmt)){
+      if (mv->source->getType() == source::Type::INT){
+        return tdmunch_expr_int(mv->source, table[mv->dest->label], Lo);
+      }
+      if (mv->source->getType() == source::Type::BOOL){
+        int Lt = instrCounter++;
+        int Lf = instrCounter++;
+        instructions.push_back(new target::MoveBool(table[mv->dest->label], true, Lt, Lo));
+        instructions.push_back(new target::MoveBool(table[mv->dest->label], false, Lf, Lo));
+        return tdmunch_expr_bool(mv->source, Lt, Lf);
+      }
     }
-    else if (auto pr = dynamic_cast<source::Print*>(stmt)){
+    else if (auto pr = dynamic_cast<const source::Print*>(stmt)){
       target::Dest* fresh = new target::Dest(pr->arg->getType(), ++varCounter);
       symbols.push_back(fresh);
-      tdmunch_expr(pr->arg, fresh);
-      instructions.push_back(new target::Print(fresh, ++instrCounter));
+      if (pr->arg->getType() == source::Type::INT){
+        int L1 = instrCounter++;
+        int Li = tdmunch_expr_int(pr->arg, fresh, L1);
+        instructions.push_back(new target::Print(fresh, L1, Lo));
+        return Li;
+      }
+      if (pr->arg->getType() == source::Type::BOOL){
+        int L1 = instrCounter++;
+        int L2 = instrCounter++;
+        int Lt = instrCounter++;
+        int Lf = instrCounter++;
+        instructions.push_back(new target::MoveBool(fresh, true, Lt, L1));
+        instructions.push_back(new target::Print(fresh, L1, Lo));
+        instructions.push_back(new target::MoveBool(fresh, false, Lf, L2));
+        instructions.push_back(new target::Print(fresh, L2, Lo));
+        return tdmunch_expr_bool(pr->arg, Lt, Lf);
+      }
     }
-    else if (auto ifels = dynamic_cast<source::ifElse*>(stmt)){
-      stmt->print(std::cout);
-      target::Dest* fresh = new target::Dest(source::Type::BOOL, ++varCounter);
-      symbols.push_back(fresh);
-      tdmunch_expr(ifels->condition, fresh);
-      std::list<target::Instr *> ifBlock, elseBlock;
-      int branchLabel = ++instrCounter;
-      for (auto stmtbis : ifels->ifBlock->statements){
-        tdmunch_stmt(stmtbis);
+    else if (auto blc = dynamic_cast<const source::Block*>(stmt)){
+      int Ltmp = Lo;
+      for (auto it = blc->statements.rbegin(); it != blc->statements.rend(); ++it){
+        Ltmp = tdmunch_stmt(*it, Ltmp);
       }
-      int branch2Label = ++instrCounter;
-      instructions.push_back(new target::UBranch(instrCounter + 1, fresh, branchLabel));
-      for (auto stmtbis : ifels->elseBlock->statements){
-        tdmunch_stmt(stmtbis);
-      }
-      instructions.push_back(new target::Goto(instrCounter, branch2Label));
+      return Ltmp;
     }
-    else if (auto whil = dynamic_cast<source::Whilee*>(stmt)){
-      target::Dest* fresh = new target::Dest(whil->condition->getType(), ++varCounter);
-      symbols.push_back(fresh);
-      tdmunch_expr(whil->condition, fresh);
-      std::list<target::Instr *> ifBlock, elseBlock;
-      int branchLabel = ++instrCounter;
-      for (auto stmtbis : whil->block->statements){
-        tdmunch_stmt(stmtbis);
-      }
-      instructions.push_back(new target::Goto(branchLabel, ++instrCounter));
-      instructions.push_back(new target::UBranch(instrCounter+1, fresh, branchLabel));
+    else if (auto ifels = dynamic_cast<const source::ifElse*>(stmt)){
+      int Lt = tdmunch_stmt(ifels->ifBlock, Lo);
+      int Lf = tdmunch_stmt(ifels->elseBlock, Lo);
+      return tdmunch_expr_bool(ifels->condition, Lt, Lf);
+    }
+    else if (auto whil = dynamic_cast<const source::Whilee*>(stmt)){
+      int Lend = instrCounter++;
+      int Lt = tdmunch_stmt(whil->block, Lend);
+      int Li = tdmunch_expr_bool(whil->condition, Lt, Lo);
+      std::cout << "Lend" << Lend <<  std::endl;
+      instructions.push_back(new target::Goto(Lend, Li));
+      return Li;
     }
 }
 
-void tdmunch_expr(const source::Expr* expr, target::Dest* dest){
-  std::cout << "Evaluating: ";
-  expr->print(std::cout);
-  std::cout << "\n";
+
+int tdmunch_expr_int(const source::Expr* expr, target::Dest* dest, int Lo){
+  //std::cout << "Evaluating: ";
+  //expr->print(std::cout);
+  //std::cout << "\n";
   if (auto var = dynamic_cast<const source::Variable*>(expr)){
-    instructions.push_back(new target::MoveCp(dest, table[var->label], ++instrCounter));
+    if (var->getType() == source::Type::INT){
+      int Li = instrCounter++;
+      instructions.push_back(new target::MoveCp(dest, table[var->label], Li, Lo));
+      return Li;
+    }
   }
   if (auto imm = dynamic_cast<const source::Immediate*>(expr)){
-    instructions.push_back(new target::MoveImm(dest, imm->value, ++instrCounter));
-  }
-  if (auto bol = dynamic_cast<const source::Bool*>(expr)){
-    instructions.push_back(new target::MoveBool(dest, bol->value, ++instrCounter));
+    int Li = instrCounter++;
+    instructions.push_back(new target::MoveImm(dest, imm->value, Li, Lo));
+    return Li;
   }
   if (auto unop = dynamic_cast<const source::UnopApp*>(expr)){
     target::Dest* fresh = new target::Dest(unop->getType(), ++varCounter);
     symbols.push_back(fresh);
-    tdmunch_expr(unop->arg, fresh);
-    instructions.push_back(new target::MoveUnop(dest, unop->op, fresh, ++instrCounter));    
+    int L1 = instrCounter++;
+    instructions.push_back(new target::MoveUnop(dest, unop->op, fresh, L1, Lo));
+    int Li = tdmunch_expr_int(unop->arg, fresh, L1);
+    return Li;    
   }
   if (auto binop = dynamic_cast<const source::BinopApp*>(expr)){
     target::Dest* fresh1 = new target::Dest(binop->getType(), ++varCounter);
     symbols.push_back(fresh1);
     target::Dest* fresh2 = new target::Dest(binop->getType(), ++varCounter);
     symbols.push_back(fresh2);
-    tdmunch_expr(binop-> left_arg, fresh1);
-    tdmunch_expr(binop-> right_arg, fresh2);
-    instructions.push_back(new target::MoveBinop(dest, fresh1, binop->op, fresh2, ++instrCounter));
-  }
-  if (auto compop = dynamic_cast<const source::Comparaison*>(expr)){
-    target::Dest* fresh1 = new target::Dest(source::Type::BOOL, ++varCounter);
-    symbols.push_back(fresh1);
-    target::Dest* fresh2 = new target::Dest(source::Type::BOOL, ++varCounter);
-    symbols.push_back(fresh2);
-    tdmunch_expr(compop-> left_arg, fresh1);
-    tdmunch_expr(compop-> right_arg, fresh2);
-    instructions.push_back(new target::Compop(dest, fresh1, compop->op, fresh2, ++instrCounter));
+    int L2 = instrCounter++;
+    instructions.push_back(new target::MoveBinop(dest, fresh1, binop->op, fresh2, L2, Lo));
+    int L1 = tdmunch_expr_int(binop-> right_arg, fresh2, L2);
+    int Li = tdmunch_expr_int(binop-> left_arg, fresh1, L1);
+    return Li;
   }
 }
-
+int tdmunch_expr_bool(const source::Expr* expr, int Lt, int Lf){
+  if (auto var = dynamic_cast<const source::Variable*>(expr)){
+    std::cout << "LT LF " << Lt << " " << Lf << std::endl;
+    int Li = instrCounter++;
+    instructions.push_back(new target::UBranch(table[var->label], Li, Lt, Lf));
+    return Li;
+  }
+  if (auto bol = dynamic_cast<const source::Bool*>(expr)){
+    if (bol->value){
+      return Lt;
+    }
+    else{
+      return Lf;
+    }
+  }
+  if (auto unop = dynamic_cast<const source::UnopApp*>(expr)){
+    return tdmunch_expr_bool(unop->arg, Lf, Lt);
+  }
+  if (auto binop = dynamic_cast<const source::BinopApp*>(expr)){
+    if (binop->op == source::Binop::boolAnd){
+      int L1 = tdmunch_expr_bool(binop->right_arg, Lt, Lf);
+      return tdmunch_expr_bool(binop->left_arg, L1, Lf);
+    }
+    if (binop->op == source::Binop::boolOr){
+      int L1 = tdmunch_expr_bool(binop->right_arg, Lt, Lf);
+      return tdmunch_expr_bool(binop->left_arg, Lt, L1);
+    }
+  }
+  if (auto compop = dynamic_cast<const source::Comparaison*>(expr)){
+    if (compop->left_arg->getType() == source::Type::INT){
+      int L2 = instrCounter++;
+      target::Dest* fresh1 = new target::Dest(source::Type::INT, ++varCounter);
+      symbols.push_back(fresh1);
+      target::Dest* fresh2 = new target::Dest(source::Type::INT, ++varCounter);
+      symbols.push_back(fresh2);
+      instructions.push_back(new target::BBranch(fresh1, fresh2, compop->op, L2, Lt, Lf));
+      int L1 = tdmunch_expr_int(compop->right_arg, fresh2, L2);
+      return tdmunch_expr_int(compop->left_arg, fresh1, L1);
+    }
+    else{
+      //(e1 == e2) ≡ (e1 && e2) || ! (e1 || e2)
+      if (compop->op == source::Compop::Equals){
+        const source::Expr* e1 = compop->left_arg;
+        const source::Expr* e2 = compop->right_arg;
+        source::Expr* tmp1 = new source::BinopApp(e1, source::Binop::boolAnd, e2);
+        source::Expr* tmp2 = new source::BinopApp(e1, source::Binop::boolOr, e2);
+        source::Expr* tmp3 = new source::UnopApp(source::Unop::boolNot, tmp2);
+        source::Expr* tmp4 = new source::BinopApp(tmp1, source::Binop::boolOr, tmp3);
+        return tdmunch_expr_bool(tmp4, Lt, Lf);
+      }
+      //(e1 != e2) ≡ ! (e1 && e2) && (e1 || e2)
+      else{
+        const source::Expr* e1 = compop->left_arg;
+        const source::Expr* e2 = compop->right_arg;
+        source::Expr* tmp1 = new source::BinopApp(e1, source::Binop::boolAnd, e2);
+        source::Expr* tmp2 = new source::BinopApp(e1, source::Binop::boolOr, e2);
+        source::Expr* tmp3 = new source::UnopApp(source::Unop::boolNot, tmp1);
+        source::Expr* tmp4 = new source::BinopApp(tmp1, source::Binop::boolAnd, tmp3);
+        return tdmunch_expr_bool(tmp4, Lt, Lf);
+      }
+    }
+  }
+}
 } // bx

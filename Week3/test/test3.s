@@ -4,106 +4,163 @@
 main:
 pushq %rbp
 movq %rsp, %rbp
-subq $136, %rsp 
-jmp .L1 
+subq $72, %rsp 
+jmp .L31
+.L3:
+	 movq $1, 40(%rsp)
+	 jmp .L1
+
 .L1:
-	 movq $1, 0(%rsp)
+	 movq 40(%rsp), %rdi
+	 callq bx0_print
+	 jmp .L0
+
+.L4:
+	 movq $0, 40(%rsp)
 	 jmp .L2
 
 .L2:
-	 movq $0, 8(%rsp)
-	 jmp .L3
-
-.L3:
-	 movq 0(%rsp), %R8
- movq %R8, 40(%rsp)
-	 jmp .L4
-
-.L4:
-	 movq 8(%rsp), %R8
- movq %R8, 48(%rsp)
-	 jmp .L5
+	 movq 40(%rsp), %rdi
+	 callq bx0_print
+	 jmp .L0
 
 .L5:
-	 movq 48(%rsp), %R8
- 	 movq 40(%rsp), %R9
-	 orq %R8, %R9
- 	 movq %R9, 16(%rsp) 
+	 movq 32(%rsp), %R8
+	 cmpq $1, %R8
+	 jz .L3
+	 jmp .L4
 
 .L6:
-	 movq 0(%rsp), %R8
- movq %R8, 56(%rsp)
-	 jmp .L7
+	 movq $1, 32(%rsp)
+	 jmp .L5
 
 .L7:
-	 movq 8(%rsp), %R8
- movq %R8, 64(%rsp)
-	 jmp .L8
+	 movq $0, 32(%rsp)
+	 jmp .L5
 
 .L8:
-	 movq 64(%rsp), %R8
- 	 movq 56(%rsp), %R9
-	 andq %R8, %R9
- 	 movq %R9, 24(%rsp) 
+	 movq 24(%rsp), %R8
+	 cmpq $1, %R8
+	 jz .L6
+	 jmp .L7
 
 .L9:
 	 movq 16(%rsp), %R8
- movq %R8, 72(%rsp)
-	 jmp .L10
+	 cmpq $1, %R8
+	 jz .L8
+	 jmp .L7
 
 .L10:
-	 movq 72(%rsp), %rdi
-	 callq bx0_print
+	 movq 16(%rsp), %R8
+	 cmpq $1, %R8
+	 jz .L8
+	 jmp .L9
+
+.L13:
+	 movq $1, 48(%rsp)
 	 jmp .L11
 
 .L11:
-	 movq 24(%rsp), %R8
- movq %R8, 80(%rsp)
+	 movq 48(%rsp), %rdi
+	 callq bx0_print
+	 jmp .L10
+
+.L14:
+	 movq $0, 48(%rsp)
 	 jmp .L12
 
 .L12:
-	 movq 80(%rsp), %rdi
+	 movq 48(%rsp), %rdi
 	 callq bx0_print
-	 jmp .L13
-
-.L13:
-	 movq 16(%rsp), %R8
- movq %R8, 104(%rsp)
-	 jmp .L14
-
-.L14:
-	 movq 16(%rsp), %R8
- movq %R8, 112(%rsp)
-	 jmp .L15
+	 jmp .L10
 
 .L15:
-	 movq 112(%rsp), %R8
- 	 movq 104(%rsp), %R9
-	 orq %R8, %R9
- 	 movq %R9, 88(%rsp) 
+	 movq 24(%rsp), %R8
+	 cmpq $1, %R8
+	 jz .L13
+	 jmp .L14
+
+.L18:
+	 movq $1, 56(%rsp)
+	 jmp .L16
 
 .L16:
-	 movq 24(%rsp), %R8
- movq %R8, 96(%rsp)
+	 movq 56(%rsp), %rdi
+	 callq bx0_print
+	 jmp .L15
+
+.L19:
+	 movq $0, 56(%rsp)
 	 jmp .L17
 
 .L17:
-	 movq 96(%rsp), %R8
- 	 movq 88(%rsp), %R9
-	 andq %R8, %R9
- 	 movq %R9, 32(%rsp) 
-
-.L18:
-	 movq 32(%rsp), %R8
- movq %R8, 120(%rsp)
-	 jmp .L19
-
-.L19:
-	 movq 120(%rsp), %rdi
+	 movq 56(%rsp), %rdi
 	 callq bx0_print
-	 jmp .L20
+	 jmp .L15
 
 .L20:
+	 movq 16(%rsp), %R8
+	 cmpq $1, %R8
+	 jz .L18
+	 jmp .L19
+
+.L21:
+	 movq $1, 24(%rsp)
+	 jmp .L20
+
+.L22:
+	 movq $0, 24(%rsp)
+	 jmp .L20
+
+.L23:
+	 movq 8(%rsp), %R8
+	 cmpq $1, %R8
+	 jz .L21
+	 jmp .L22
+
+.L24:
+	 movq 0(%rsp), %R8
+	 cmpq $1, %R8
+	 jz .L23
+	 jmp .L22
+
+.L25:
+	 movq $1, 16(%rsp)
+	 jmp .L24
+
+.L26:
+	 movq $0, 16(%rsp)
+	 jmp .L24
+
+.L27:
+	 movq 8(%rsp), %R8
+	 cmpq $1, %R8
+	 jz .L25
+	 jmp .L26
+
+.L28:
+	 movq 0(%rsp), %R8
+	 cmpq $1, %R8
+	 jz .L25
+	 jmp .L27
+
+.L29:
+	 movq $1, 8(%rsp)
+	 jmp .L28
+
+.L30:
+	 movq $0, 8(%rsp)
+	 jmp .L28
+
+.L31:
+	 movq $1, 0(%rsp)
+	 jmp .L30
+
+.L32:
+	 movq $0, 0(%rsp)
+	 jmp .L30
+
+.L0:
 	 jmp .Lend
 
 .Lend:
