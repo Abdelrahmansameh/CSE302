@@ -341,10 +341,11 @@ public:
   std::ostream& print(std::ostream &out) const override;
 };
 
-class Start: public Instr{
+class PrintBool: public Instr{
 public:
-  const int outlabel;
-  Start(int outlabel): outlabel(outlabel){}
+  const int label, outlabel;
+  const bool val;
+  PrintBool(bool val, int label, int outlabel): val(val), label(label), outlabel(outlabel){ }
   std::ostream& print(std::ostream &out) const override;
 };
 

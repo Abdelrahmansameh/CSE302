@@ -625,10 +625,16 @@ std::ostream& End::print(std::ostream& out) const{
   return out;
 }
 
-std::ostream& Start::print(std::ostream& out) const{
-  //out << "Start .L" << this->outlabel << "\n";
-  out << "jmp .L" << this->outlabel << "\n";
-  return out;
+
+std::ostream& PrintBool::print(std::ostream& out) const{
+  out << ".L" << this->label << ":\n";
+  if (this->val){
+    out << "\t callq bx1_printTrue\n";
+  }
+  else{
+    out << "\t callq bx1_printFalse\n";
+  }
+  out << "\t jmp .L" << this->outlabel << "\n";
 }
 
 std::ostream& Prog::print(std::ostream &out) const {
@@ -664,10 +670,6 @@ target::Prog getTargetProg(const source::Prog prog){
   int end = L;
   for (auto it = prog.body.rbegin(); it != prog.body.rend(); ++it){
     L = tdmunch_stmt(*it, L);
-    std::cout << "L: ";
-    (*it)->print(std::cout);
-    std::cout << L << std::endl;
-    //(*it)->print(std::cout);
   }
   for (auto it = prog.vars.rbegin(); it != prog.vars.rend(); ++it){
       auto dclr = *it;
@@ -678,13 +680,11 @@ target::Prog getTargetProg(const source::Prog prog){
         else{
           int Lt = instrCounter++;
           int Lf = instrCounter++;
-          std::cout << "L: " << L << std::endl;
           instructions.push_back(new target::MoveBool(table[dclr->label], true, Lt, L));
           instructions.push_back(new target::MoveBool(table[dclr->label], false, Lf, L));
           L = tdmunch_expr_bool(dclr->initValue, Lt, Lf);
         }
       }
-      (*it)->print(std::cout);
   }
   instructions.push_back(new target::End(end));
   return target::Prog(symbols, instructions, L);
@@ -713,14 +713,10 @@ int tdmunch_stmt(const source::Stmt* stmt, int Lo){
         return Li;
       }
       if (pr->arg->getType() == source::Type::BOOL){
-        int L1 = instrCounter++;
-        int L2 = instrCounter++;
         int Lt = instrCounter++;
         int Lf = instrCounter++;
-        instructions.push_back(new target::MoveBool(fresh, true, Lt, L1));
-        instructions.push_back(new target::Print(fresh, L1, Lo));
-        instructions.push_back(new target::MoveBool(fresh, false, Lf, L2));
-        instructions.push_back(new target::Print(fresh, L2, Lo));
+        instructions.push_back(new target::PrintBool(true, Lt, Lo));
+        instructions.push_back(new target::PrintBool(false, Lf, Lo));
         return tdmunch_expr_bool(pr->arg, Lt, Lf);
       }
     }
@@ -740,7 +736,6 @@ int tdmunch_stmt(const source::Stmt* stmt, int Lo){
       int Lend = instrCounter++;
       int Lt = tdmunch_stmt(whil->block, Lend);
       int Li = tdmunch_expr_bool(whil->condition, Lt, Lo);
-      std::cout << "Lend" << Lend <<  std::endl;
       instructions.push_back(new target::Goto(Lend, Li));
       return Li;
     }
@@ -748,9 +743,6 @@ int tdmunch_stmt(const source::Stmt* stmt, int Lo){
 
 
 int tdmunch_expr_int(const source::Expr* expr, target::Dest* dest, int Lo){
-  //std::cout << "Evaluating: ";
-  //expr->print(std::cout);
-  //std::cout << "\n";
   if (auto var = dynamic_cast<const source::Variable*>(expr)){
     if (var->getType() == source::Type::INT){
       int Li = instrCounter++;
@@ -785,7 +777,6 @@ int tdmunch_expr_int(const source::Expr* expr, target::Dest* dest, int Lo){
 }
 int tdmunch_expr_bool(const source::Expr* expr, int Lt, int Lf){
   if (auto var = dynamic_cast<const source::Variable*>(expr)){
-    std::cout << "LT LF " << Lt << " " << Lf << std::endl;
     int Li = instrCounter++;
     instructions.push_back(new target::UBranch(table[var->label], Li, Lt, Lf));
     return Li;

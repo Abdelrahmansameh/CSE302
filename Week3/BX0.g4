@@ -39,4 +39,5 @@ BOOL: 'true' | 'false' ;
 VAR: [A-Za-z_][A-Za-z0-9_]* ;
 NUM: [0-9]+ ;
 
+COMMENT: '//' ~[\r\n]* '\r'? '\n' -> skip ;
 WS: [ \t\r\n]+ -> skip ;
