@@ -41,7 +41,7 @@ bx0.exe: $(OBJECTS)
 .PHONY: clean
 clean:
 	rm -f *.o *.exe $(filter-out BX0.g4,$(wildcard BX0*))
-	rm -f test/*.exe test/*.c
+	rm -f test/*.exe test/*.s
 
 ast.o: ast.h
 bx0.o: ast.h
